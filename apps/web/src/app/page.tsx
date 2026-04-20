@@ -137,7 +137,7 @@ export default function HomePage() {
 
       {/* --- Hero --- */}
       <section className="border-b border-line/60">
-        <div className="container grid gap-12 py-24 lg:grid-cols-[1.2fr_1fr] lg:py-32">
+        <div className="container grid gap-12 py-16 lg:grid-cols-[1.2fr_1fr] lg:py-20">
           <div className="animate-fade-in">
             <Badge variant="outline" className="mb-6 font-mono text-[11px] uppercase tracking-widest">
               Solana Frontier · April – May 2026
@@ -220,7 +220,7 @@ export default function HomePage() {
 
       {/* --- Seven rails --- */}
       <section id="rails" className="border-b border-line/60">
-        <div className="container py-24">
+        <div className="container py-16">
           <div className="mb-14 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
               <Badge variant="outline" className="mb-4 font-mono text-[10px] uppercase tracking-widest">
@@ -264,7 +264,7 @@ export default function HomePage() {
 
       {/* --- Value props --- */}
       <section className="border-b border-line/60">
-        <div className="container py-24">
+        <div className="container py-14">
           <div className="grid gap-10 md:grid-cols-3">
             {VALUE_PROPS.map(({ icon: Icon, audience, headline, body }) => (
               <div key={audience} className="space-y-4">
@@ -284,7 +284,7 @@ export default function HomePage() {
 
       {/* --- Moat --- */}
       <section className="border-b border-line/60 bg-ink/40">
-        <div className="container py-24">
+        <div className="container py-16">
           <div className="mb-14 max-w-2xl">
             <Badge variant="outline" className="mb-4 font-mono text-[10px] uppercase tracking-widest">
               02 · The moat
@@ -315,7 +315,7 @@ export default function HomePage() {
 
       {/* --- Integrations strip --- */}
       <section className="border-b border-line/60">
-        <div className="container py-20">
+        <div className="container py-14">
           <div className="mb-10 text-center">
             <Badge variant="outline" className="mb-4 font-mono text-[10px] uppercase tracking-widest">
               03 · Built on the best of Solana
@@ -347,7 +347,7 @@ export default function HomePage() {
 
       {/* --- Status / build-in-public --- */}
       <section className="border-b border-line/60">
-        <div className="container py-20">
+        <div className="container py-14">
           <div className="grid gap-10 md:grid-cols-[1.2fr_1fr] md:items-center">
             <div>
               <Badge variant="burnt" className="mb-4 font-mono text-[10px] uppercase tracking-widest">
@@ -414,7 +414,7 @@ export default function HomePage() {
 
       {/* --- Compliance note --- */}
       <section className="border-b border-line/60">
-        <div className="container py-14">
+        <div className="container py-10">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
             <ShieldCheck className="size-6 text-burnt" />
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -435,7 +435,7 @@ export default function HomePage() {
 
       {/* --- Footer --- */}
       <footer>
-        <div className="container py-14">
+        <div className="container py-12">
           <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
             <div className="max-w-sm">
               <span className="wordmark text-xl font-semibold">{BRAND.wordmark}</span>

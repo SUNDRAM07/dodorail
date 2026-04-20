@@ -2,7 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { BRAND } from "@dodorail/sdk";
 
+import { AppProviders } from "@/components/providers/app-providers";
+
 import "./globals.css";
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -73,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
