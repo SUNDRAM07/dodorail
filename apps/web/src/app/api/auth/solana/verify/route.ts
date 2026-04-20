@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
   // 1. Retrieve the challenge cookie we issued earlier.
   const cookieStore = await cookies();
-  const challenge = readChallenge(cookieStore.get(COOKIE_NAMES.challenge)?.value);
+  const challenge = await readChallenge(cookieStore.get(COOKIE_NAMES.challenge)?.value);
   if (!challenge) {
     return NextResponse.json(
       { error: "challenge_missing_or_expired" },
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
   });
 
   // 5. Issue session cookie + clear the now-used challenge.
-  const sessionToken = buildSessionToken({
+  const sessionToken = await buildSessionToken({
     merchantId: merchant.id,
     walletAddress,
   });

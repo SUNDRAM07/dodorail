@@ -1,23 +1,17 @@
 /**
- * DodoRail session primitive — stateless HMAC-signed cookies.
+ * DodoRail session primitive — stateless HMAC-signed cookies via Web Crypto.
  *
- * Day 2 interim: we run our own minimal session layer so we can ship the
- * wallet-auth flow end-to-end today without the Better-Auth integration risk
- * (API surface re-learn inside a 22-day sprint).
+ * Uses the Web Crypto API (globalThis.crypto.subtle) so the same file works
+ * in Edge Runtime (middleware), Node.js runtime (route handlers), and the
+ * browser if ever needed.
  *
- * Day 3 plan: swap this file out for Better-Auth's session primitives. Every
- * consumer (middleware, server actions, route handlers) imports `getSession`
- * / `setSession` / `clearSession` from here, so the migration is one file.
+ * Day 3 plan: swap this file for Better-Auth's session primitives. Every
+ * consumer calls `readSessionToken` / `buildSessionToken` / `buildChallenge`
+ * / `readChallenge` from here, so the migration stays local.
  *
- * The cookie format is intentionally boring:
- *
+ * Cookie format (unchanged):
  *   <url-safe-base64-payload-json>.<url-safe-base64-hmac-sha256-signature>
- *
- * HMAC key rotation: change `DODORAIL_SESSION_SECRET`, redeploy. Everyone
- * signs out. The secret should be >= 32 bytes of random.
  */
-
-import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 
 type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
 
@@ -28,13 +22,9 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
 const CHALLENGE_MAX_AGE_SECONDS = 60 * 5; // 5 minutes
 
 export interface SessionPayload {
-  /** Merchant.id */
   merchantId: string;
-  /** Solana wallet address that signed in — for display, not auth. */
   walletAddress: string;
-  /** Issued-at, seconds since epoch. */
   iat: number;
-  /** Expires-at, seconds since epoch. */
   exp: number;
 }
 
@@ -45,62 +35,107 @@ export interface ChallengePayload {
   exp: number;
 }
 
-function getSecret(): Buffer {
+function getSecretBytes(): Uint8Array {
   const secret = process.env.DODORAIL_SESSION_SECRET;
   if (!secret || secret.length < 32) {
-    // Dev fallback — deterministic so local dev persists sessions across hot-reload.
-    // NEVER lands in production because we set the env in Vercel.
     if (process.env.NODE_ENV === "production") {
       throw new Error("DODORAIL_SESSION_SECRET must be set (>=32 bytes) in production.");
     }
-    return Buffer.from("dev-secret-do-not-use-in-prod-padding-padding-padding", "utf8");
+    return new TextEncoder().encode("dev-secret-do-not-use-in-prod-padding-padding-padding");
   }
-  return Buffer.from(secret, "utf8");
+  return new TextEncoder().encode(secret);
 }
 
-function toBase64Url(buf: Buffer): string {
-  return buf.toString("base64").replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+function toBase64Url(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]!);
+  const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(bytes).toString("base64");
+  return b64.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-function fromBase64Url(str: string): Buffer {
+function fromBase64Url(str: string): Uint8Array {
   const pad = str.length % 4 === 0 ? 0 : 4 - (str.length % 4);
   const b64 = str.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat(pad);
-  return Buffer.from(b64, "base64");
+  if (typeof atob === "function") {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  return new Uint8Array(Buffer.from(b64, "base64"));
 }
 
-function signPayload(payload: Json): string {
-  const body = toBase64Url(Buffer.from(JSON.stringify(payload), "utf8"));
-  const sig = toBase64Url(createHmac("sha256", getSecret()).update(body).digest());
-  return `${body}.${sig}`;
+/** Casts are narrow: TS 5.7+ distinguishes Uint8Array<ArrayBuffer> from
+ *  Uint8Array<SharedArrayBuffer>, but Web Crypto only ever sees ArrayBuffer
+ *  here (we never touch SharedArrayBuffer). Using `BufferSource` keeps the
+ *  call sites honest. */
+function asBufferSource(bytes: Uint8Array): BufferSource {
+  return bytes as unknown as BufferSource;
 }
 
-function verifyPayload<T extends Json>(token: string): T | null {
+async function importHmacKey(): Promise<CryptoKey> {
+  return globalThis.crypto.subtle.importKey(
+    "raw",
+    asBufferSource(getSecretBytes()),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
+}
+
+async function signPayload(payload: Json): Promise<string> {
+  const body = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
+  const key = await importHmacKey();
+  const sig = await globalThis.crypto.subtle.sign(
+    "HMAC",
+    key,
+    asBufferSource(new TextEncoder().encode(body)),
+  );
+  return `${body}.${toBase64Url(new Uint8Array(sig))}`;
+}
+
+async function verifyPayload<T>(token: string): Promise<T | null> {
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
-  const expected = createHmac("sha256", getSecret()).update(body).digest();
-  const provided = fromBase64Url(sig);
-  if (expected.length !== provided.length) return null;
-  if (!timingSafeEqual(expected, provided)) return null;
+  const key = await importHmacKey();
+  const ok = await globalThis.crypto.subtle.verify(
+    "HMAC",
+    key,
+    asBufferSource(fromBase64Url(sig)),
+    asBufferSource(new TextEncoder().encode(body)),
+  );
+  if (!ok) return null;
   try {
-    return JSON.parse(fromBase64Url(body).toString("utf8")) as T;
+    const decoded = new TextDecoder().decode(fromBase64Url(body));
+    return JSON.parse(decoded) as T;
   } catch {
     return null;
   }
+}
+
+function randomHex(bytes: number): string {
+  const buf = new Uint8Array(bytes);
+  globalThis.crypto.getRandomValues(buf);
+  return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /* -------------------------------------------------------------------------- */
 /*                               Session helpers                              */
 /* -------------------------------------------------------------------------- */
 
-export function buildSessionToken(payload: Omit<SessionPayload, "iat" | "exp">): string {
+export async function buildSessionToken(
+  payload: Omit<SessionPayload, "iat" | "exp">,
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const full: SessionPayload = { ...payload, iat: now, exp: now + SESSION_MAX_AGE_SECONDS };
   return signPayload(full as unknown as Json);
 }
 
-export function readSessionToken(token: string | undefined): SessionPayload | null {
+export async function readSessionToken(
+  token: string | undefined,
+): Promise<SessionPayload | null> {
   if (!token) return null;
-  const payload = verifyPayload<SessionPayload>(token);
+  const payload = await verifyPayload<SessionPayload>(token);
   if (!payload) return null;
   if (Math.floor(Date.now() / 1000) > payload.exp) return null;
   return payload;
@@ -110,21 +145,21 @@ export function readSessionToken(token: string | undefined): SessionPayload | nu
 /*                              Challenge helpers                             */
 /* -------------------------------------------------------------------------- */
 
-export function buildChallenge(walletAddress: string): {
+export async function buildChallenge(walletAddress: string): Promise<{
   token: string;
   nonce: string;
   message: string;
   expiresAt: string;
-} {
+}> {
   const now = Math.floor(Date.now() / 1000);
-  const nonce = randomBytes(16).toString("hex");
+  const nonce = randomHex(16);
   const payload: ChallengePayload = {
     nonce,
     walletAddress,
     iat: now,
     exp: now + CHALLENGE_MAX_AGE_SECONDS,
   };
-  const token = signPayload(payload as unknown as Json);
+  const token = await signPayload(payload as unknown as Json);
   const expiresAt = new Date(payload.exp * 1000).toISOString();
   const message = [
     "Sign in to DodoRail",
@@ -138,9 +173,11 @@ export function buildChallenge(walletAddress: string): {
   return { token, nonce, message, expiresAt };
 }
 
-export function readChallenge(token: string | undefined): ChallengePayload | null {
+export async function readChallenge(
+  token: string | undefined,
+): Promise<ChallengePayload | null> {
   if (!token) return null;
-  const payload = verifyPayload<ChallengePayload>(token);
+  const payload = await verifyPayload<ChallengePayload>(token);
   if (!payload) return null;
   if (Math.floor(Date.now() / 1000) > payload.exp) return null;
   return payload;

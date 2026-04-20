@@ -22,7 +22,7 @@ export type AuthSession = {
 export async function getSession(): Promise<AuthSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAMES.session)?.value;
-  const session = readSessionToken(token);
+  const session = await readSessionToken(token);
   if (!session) return null;
 
   const merchant = await prisma.merchant.findUnique({

@@ -6,7 +6,6 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import {
   SolflareWalletAdapter,
   PhantomWalletAdapter,
-  BackpackWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
 
@@ -26,12 +25,11 @@ export function DodorailWalletProvider({ children }: { children: ReactNode }) {
       : clusterApiUrl("devnet");
   }, []);
 
+  // Backpack was dropped from @solana/wallet-adapter-wallets in 2025; users
+  // with Backpack installed are auto-detected by the WalletModal via Wallet
+  // Standard. Phantom + Solflare explicit covers our early merchant base.
   const wallets = useMemo(
-    () => [
-      new SolflareWalletAdapter(),
-      new PhantomWalletAdapter(),
-      new BackpackWalletAdapter(),
-    ],
+    () => [new SolflareWalletAdapter(), new PhantomWalletAdapter()],
     [],
   );
 

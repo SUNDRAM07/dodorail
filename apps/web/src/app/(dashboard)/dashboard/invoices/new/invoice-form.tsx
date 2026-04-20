@@ -10,12 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
-const RAILS = [
+type RailOption = { id: string; label: string; feeBps: number; recommended?: boolean };
+
+const RAILS: readonly RailOption[] = [
   { id: "SOLANA_USDC", label: "USDC on Solana", feeBps: 50, recommended: true },
   { id: "DODO_CARD", label: "Card via Dodo", feeBps: 450 },
   { id: "DODO_UPI", label: "UPI (Indian customers)", feeBps: 250 },
   { id: "X402_AGENT", label: "Agent payment (x402)", feeBps: 10 },
-] as const;
+];
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -39,6 +41,7 @@ export function InvoiceForm() {
     createInvoiceAction,
     initialState,
   );
+  const fieldErrors = state.ok === false ? state.fieldErrors : undefined;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -54,8 +57,8 @@ export function InvoiceForm() {
             placeholder="49.00"
             required
           />
-          {state.fieldErrors?.amountUsd && (
-            <p className="text-xs text-destructive">{state.fieldErrors.amountUsd[0]}</p>
+          {fieldErrors?.amountUsd && (
+            <p className="text-xs text-destructive">{fieldErrors.amountUsd[0]}</p>
           )}
         </div>
         <div className="space-y-2">
@@ -67,8 +70,8 @@ export function InvoiceForm() {
             placeholder="buyer@example.com"
             required
           />
-          {state.fieldErrors?.customerEmail && (
-            <p className="text-xs text-destructive">{state.fieldErrors.customerEmail[0]}</p>
+          {fieldErrors?.customerEmail && (
+            <p className="text-xs text-destructive">{fieldErrors.customerEmail[0]}</p>
           )}
         </div>
       </div>
@@ -116,8 +119,8 @@ export function InvoiceForm() {
             </label>
           ))}
         </div>
-        {state.fieldErrors?.acceptedRails && (
-          <p className="text-xs text-destructive">{state.fieldErrors.acceptedRails[0]}</p>
+        {fieldErrors?.acceptedRails && (
+          <p className="text-xs text-destructive">{fieldErrors.acceptedRails[0]}</p>
         )}
       </fieldset>
 

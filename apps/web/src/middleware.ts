@@ -5,10 +5,10 @@ import { COOKIE_NAMES, readSessionToken } from "@/lib/session";
 const PROTECTED_PATHS = ["/dashboard"];
 const AUTH_PATHS = ["/sign-in"];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get(COOKIE_NAMES.session)?.value;
-  const session = readSessionToken(token);
+  const session = await readSessionToken(token);
 
   // Gate /dashboard/* behind sign-in.
   if (PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {

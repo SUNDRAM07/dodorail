@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   }
   const { walletAddress } = parsed.data;
 
-  const { token, message, expiresAt } = buildChallenge(walletAddress);
+  const { token, message, expiresAt } = await buildChallenge(walletAddress);
 
   const res = NextResponse.json({ message, expiresAt });
   res.cookies.set(COOKIE_NAMES.challenge, token, {

@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
     // Server Actions are stable in 15 but opt-in for body-size tweaks.
     serverActions: { bodySizeLimit: "2mb" },
   },
+  // Mark WalletConnect's optional / Node-only transitive deps as externals so
+  // webpack stops trying to bundle them into the client chunks.
+  // `pino-pretty` is a dev-only peer of `pino`; `lokijs` / `encoding` are
+  // optional deps that log warnings on bundle; all are safe to externalize.
+  webpack: (config) => {
+    config.externals = config.externals || [];
+    config.externals.push("pino-pretty", "lokijs", "encoding");
+    return config;
+  },
 };
 
 export default nextConfig;

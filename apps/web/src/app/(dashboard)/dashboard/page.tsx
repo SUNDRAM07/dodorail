@@ -5,7 +5,7 @@ import { prisma } from "@dodorail/db";
 import { getSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 export default async function DashboardHome() {
@@ -13,17 +13,14 @@ export default async function DashboardHome() {
   if (!s) return null; // middleware redirects, but keep TS happy
   const { merchant } = s;
 
-  const [invoiceCount, paidInvoices, totalVolumeCents] = await Promise.all([
+  // Day 3 TODO: add a Payment.amountUsdCents integer column for volume math.
+  // sourceAmount is stringly-typed for multi-asset flexibility, so aggregate
+  // sum is a Day 3 concern once we split settled-USD out into its own column.
+  const [invoiceCount, paidInvoices] = await Promise.all([
     prisma.invoice.count({ where: { merchantId: merchant.id } }),
     prisma.invoice.count({ where: { merchantId: merchant.id, status: "PAID" } }),
-    prisma.payment
-      .aggregate({
-        where: { merchantId: merchant.id, status: "CONFIRMED" },
-        _sum: { sourceAmount: true },
-      })
-      .then(() => 0) // placeholder — sourceAmount is a string, Day 3 we add a cents column
-      .catch(() => 0),
   ]);
+  const totalVolumeCents = 0;
 
   const recentInvoices = await prisma.invoice.findMany({
     where: { merchantId: merchant.id },
