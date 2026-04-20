@@ -1,0 +1,16 @@
+{
+  "name": "@dodorail/ika",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ika SDK integration — bridgeless BTC/ETH via 2PC-MPC dWallets. ARCHITECTURAL ONLY (mock signer, pre-alpha).",
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

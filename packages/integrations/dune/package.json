@@ -1,0 +1,16 @@
+{
+  "name": "@dodorail/dune",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Dune Analytics integration — SQL + Sim API + MCP. Placeholder for Day 7-10.",
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

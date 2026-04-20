@@ -1,0 +1,61 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalDependencies": ["**/.env.*local", ".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "VERCEL_URL",
+    "VERCEL_ENV",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_BUILD_VERSION",
+    "NEXT_PUBLIC_GIT_SHA",
+    "DODORAIL_DODO_KEY",
+    "DODORAIL_DODO_MODE",
+    "DODORAIL_HELIUS_KEY",
+    "DODORAIL_DUNE_KEY",
+    "DODORAIL_GOLDRUSH_KEY",
+    "DODORAIL_UMBRA_KEY",
+    "DODORAIL_MAGICBLOCK_KEY",
+    "DODORAIL_LPAGENT_KEY",
+    "DODORAIL_ZERION_KEY",
+    "DODORAIL_ANTHROPIC_KEY"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "db:generate": {
+      "cache": false,
+      "outputs": ["node_modules/.prisma/**"]
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "db:seed": {
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

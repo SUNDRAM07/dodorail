@@ -1,0 +1,293 @@
+// =============================================================================
+// DodoRail — Prisma schema
+// =============================================================================
+// Five core tables (Merchant, Invoice, Payment, TreasuryPosition, Event)
+// + two commercial-thesis extras (referralCode/referredBy, publicProfileEnabled).
+//
+// Decisions locked:
+//   - Postgres on Neon (serverless branching)
+//   - snake_case in DB, camelCase in TS (via @@map + @map)
+//   - All monetary fields in smallest-unit integer (cents / smallest token unit)
+//   - `Event` is an append-only audit log; the Treasury Agent reads it;
+//     the public Dune dashboard mirrors it.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  // Keep the client output inside packages/db/node_modules to avoid leaking
+  // into other workspace packages that transitively depend on @prisma/client.
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Neon-specific: use a non-pooled connection for `prisma migrate`.
+  directUrl = env("DIRECT_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum SettlementCurrency {
+  USDC_SOLANA
+  USDG_SOLANA // reserved — flip on when USDG lands on Solana
+
+  @@map("settlement_currency")
+}
+
+enum PrivateProvider {
+  NONE
+  UMBRA
+  MAGICBLOCK
+
+  @@map("private_provider")
+}
+
+enum YieldProvider {
+  NONE
+  LP_AGENT
+  KAMINO // Kamino lives only in the Eitherway portal, but enum value stays here for v2
+
+  @@map("yield_provider")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  EXPIRED
+  VOID
+  DISPUTED
+
+  @@map("invoice_status")
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+
+  @@map("payment_status")
+}
+
+enum Rail {
+  DODO_CARD
+  DODO_UPI
+  SOLANA_USDC
+  IKA_BTC
+  IKA_ETH
+  X402_AGENT
+
+  @@map("rail")
+}
+
+enum SourceAsset {
+  USDC
+  USDG
+  BTC
+  ETH
+  INR_UPI
+  USD_CARD
+
+  @@map("source_asset")
+}
+
+enum TreasuryProtocol {
+  LP_AGENT_METEORA
+  KAMINO_LEND
+
+  @@map("treasury_protocol")
+}
+
+enum TreasuryPositionStatus {
+  OPEN
+  CLOSED
+
+  @@map("treasury_position_status")
+}
+
+enum EventType {
+  INVOICE_CREATED
+  PAYMENT_RECEIVED
+  SWEEP_TRIGGERED
+  AGENT_ALERT
+  MERCHANT_ONBOARDED
+  PRIVATE_TRANSFER_SETTLED
+  WEBHOOK_REJECTED
+  YIELD_ZAP_IN
+  YIELD_ZAP_OUT
+
+  @@map("event_type")
+}
+
+// -----------------------------------------------------------------------------
+// Core tables
+// -----------------------------------------------------------------------------
+
+model Merchant {
+  id                     String             @id @default(uuid())
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  // Identity
+  email                  String             @unique
+  name                   String
+  slug                   String             @unique // used for acme.dodorail.sol + subdomains
+  solanaWalletAddress    String             @unique @map("solana_wallet_address")
+  snsDomain              String?            @map("sns_domain") // e.g. acme.dodorail.sol
+
+  // Dodo Payments connection
+  dodoMerchantId         String?            @unique @map("dodo_merchant_id")
+  dodoCustomerPortalUrl  String?            @map("dodo_customer_portal_url")
+
+  // Settlement + mode defaults
+  settlementCurrency     SettlementCurrency @default(USDC_SOLANA) @map("settlement_currency")
+  privateModeDefault     Boolean            @default(false) @map("private_mode_default")
+  privateProvider        PrivateProvider    @default(NONE) @map("private_provider")
+
+  // Yield
+  yieldEnabled           Boolean            @default(false) @map("yield_enabled")
+  yieldThresholdCents    Int                @default(50000) @map("yield_threshold_cents") // $500 default
+  yieldProvider          YieldProvider      @default(NONE) @map("yield_provider")
+
+  // Alerts
+  telegramChatId         String?            @map("telegram_chat_id")
+
+  // Commercial-thesis extras (file 22 §8.1 + §8.2)
+  referralCode           String             @unique @map("referral_code")
+  referredById           String?            @map("referred_by_id")
+  referredBy             Merchant?          @relation("MerchantReferrals", fields: [referredById], references: [id])
+  referred               Merchant[]         @relation("MerchantReferrals")
+  publicProfileEnabled   Boolean            @default(false) @map("public_profile_enabled")
+
+  // Relations
+  invoices               Invoice[]
+  payments               Payment[]
+  treasuryPositions      TreasuryPosition[]
+  events                 Event[]
+
+  @@index([referralCode])
+  @@index([snsDomain])
+  @@map("merchants")
+}
+
+model Invoice {
+  id                 String          @id @default(uuid())
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  merchantId         String          @map("merchant_id")
+  merchant           Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  // Amount
+  amountUsdCents     Int             @map("amount_usd_cents")
+  currency           SourceAsset     @default(USDC) // the *settlement* currency
+  description        String?
+
+  // Customer
+  customerEmail      String          @map("customer_email")
+  customerName       String?         @map("customer_name")
+
+  // Lifecycle
+  status             InvoiceStatus   @default(OPEN)
+  expiresAt          DateTime        @map("expires_at") // 24h default, per Dodo convention
+
+  // Rail configuration (bitmask-ish: store the accepted rails as a Rail[])
+  acceptedRails      Rail[]          @default([]) @map("accepted_rails")
+
+  // Privacy
+  privateMode        Boolean         @default(false) @map("private_mode")
+  privateProvider    PrivateProvider @default(NONE) @map("private_provider")
+
+  // Ika (architectural — stored but not written in v1)
+  ikaDwalletId       String?         @map("ika_dwallet_id")
+
+  // External URLs
+  dodoCheckoutUrl    String?         @map("dodo_checkout_url")
+  solanaPayUrl       String?         @map("solana_pay_url")
+
+  // Relations
+  payments           Payment[]
+
+  @@index([merchantId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model Payment {
+  id                  String        @id @default(uuid())
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  invoiceId           String        @map("invoice_id")
+  invoice             Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  merchantId          String        @map("merchant_id")
+  merchant            Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  // Rail + source
+  rail                Rail
+  sourceAsset         SourceAsset   @map("source_asset")
+  sourceAmount        String        @map("source_amount") // smallest-unit of source asset, stored as string to avoid bigint JSON pain
+
+  // Status
+  status              PaymentStatus @default(PENDING)
+  processedAt         DateTime?     @map("processed_at")
+  confirmedAt         DateTime?     @map("confirmed_at")
+
+  // Settlement (USDC on Solana)
+  settlementTxSig     String?       @unique @map("settlement_tx_sig")
+
+  // Privacy proof (only populated when privateMode=true)
+  privateTxProof      String?       @map("private_tx_proof") // TDX attestation OR Umbra commitment
+
+  // Dodo metadata (if rail=DODO_*)
+  dodoPaymentId       String?       @unique @map("dodo_payment_id")
+  dodoWebhookId       String?       @map("dodo_webhook_id")
+
+  // Ika metadata (if rail=IKA_*)
+  ikaApprovalAccount  String?       @map("ika_approval_account")
+
+  @@index([merchantId])
+  @@index([invoiceId])
+  @@index([status])
+  @@map("payments")
+}
+
+model TreasuryPosition {
+  id                  String                 @id @default(uuid())
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+
+  merchantId          String                 @map("merchant_id")
+  merchant            Merchant               @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  protocol            TreasuryProtocol
+  poolId              String                 @map("pool_id") // or marketId for Kamino
+  depositedAmount     String                 @map("deposited_amount") // USDC smallest unit as string
+  currentValue        String                 @map("current_value")    // USDC smallest unit as string
+  pnlCents            Int                    @default(0) @map("pnl_cents")
+  apr                 Float                  @default(0) // percent, e.g. 8.5 means 8.5% APY
+  lastSyncedAt        DateTime               @default(now()) @map("last_synced_at")
+  status              TreasuryPositionStatus @default(OPEN)
+
+  @@index([merchantId])
+  @@index([status])
+  @@map("treasury_positions")
+}
+
+model Event {
+  id           String    @id @default(uuid())
+  occurredAt   DateTime  @default(now()) @map("occurred_at")
+
+  merchantId   String    @map("merchant_id")
+  merchant     Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  type         EventType
+  payload      Json      @default("{}") // arbitrary context; the Dune mirror flattens this
+
+  @@index([merchantId, occurredAt])
+  @@index([type, occurredAt])
+  @@map("events")
+}

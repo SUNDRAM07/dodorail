@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  DodoRail — dark-first brand theme.
+  Charcoal #1A1A1A · Burnt orange #E97F3B
+  The CSS variables below are consumed by shadcn components and by tailwind.config.ts.
+*/
+
+@layer base {
+  :root {
+    /* Light theme placeholder — we default to dark. */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 22 78% 57%; /* burnt orange ~ #E97F3B */
+    --primary-foreground: 0 0% 10%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;
+
+    --accent: 22 78% 57%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 22 78% 57%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* DodoRail default — dark. Charcoal background, burnt orange primary. */
+    --background: 0 0% 10%; /* #1A1A1A */
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 22 78% 57%; /* #E97F3B */
+    --primary-foreground: 0 0% 10%;
+
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 64%;
+
+    --accent: 22 78% 57%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 63% 46%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 17%;
+    --input: 0 0% 17%;
+    --ring: 22 78% 57%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+  ::selection {
+    background-color: hsl(22 78% 57% / 0.4);
+    color: inherit;
+  }
+}
+
+@layer components {
+  .wordmark {
+    @apply font-mono tracking-tight lowercase;
+  }
+  .divider-line {
+    @apply border-t border-line;
+  }
+  .container-prose {
+    @apply mx-auto max-w-3xl px-6;
+  }
+}
