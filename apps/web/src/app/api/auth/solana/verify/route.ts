@@ -12,6 +12,13 @@ import {
 } from "@/lib/session";
 import { referralCodeFromWallet, slugFromWallet, verifySolanaSignature } from "@/lib/solana";
 
+// SNS reverse-lookup was moved OUT of this path on Day 3 evening: the
+// @bonfida/spl-name-service module has cold-start behaviour on Vercel
+// serverless that was occasionally 500-ing the verify endpoint. We'll
+// re-enable it as a deferred enrichment job on Day 4 (triggered out-of-band
+// via Inngest or a fire-and-forget fetch). For now Merchant.snsDomain stays
+// null on creation; the display falls back to the synthetic `{slug}.dodorail.sol`.
+
 export const runtime = "nodejs";
 
 const BodySchema = z.object({
@@ -27,6 +34,19 @@ const BodySchema = z.object({
  * Ed25519 signature, then upserts a Merchant row and issues a session cookie.
  */
 export async function POST(req: Request) {
+  try {
+    return await handler(req);
+  } catch (err) {
+    // TEMP Day 3 debug: surface error detail to the client so we can diagnose
+    // the 500 from Sundaram's browser. Remove once the root cause is pinned.
+    const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    // eslint-disable-next-line no-console
+    console.error("[auth/verify] unhandled:", err);
+    return NextResponse.json({ error: "server_error", detail }, { status: 500 });
+  }
+}
+
+async function handler(req: Request): Promise<NextResponse> {
   let body: unknown;
   try {
     body = await req.json();
@@ -67,17 +87,39 @@ export async function POST(req: Request) {
   // 4. Upsert Merchant. On first sign-in we seed sensible defaults; on return
   //    sign-in we keep whatever they've configured.
   const slug = slugFromWallet(walletAddress);
-  const merchant = await prisma.merchant.upsert({
-    where: { solanaWalletAddress: walletAddress },
-    update: {},
-    create: {
-      solanaWalletAddress: walletAddress,
-      email: `${slug}@wallet.dodorail.xyz`,
-      name: `Merchant ${slug}`,
-      slug,
-      referralCode: referralCodeFromWallet(walletAddress),
-    },
-  });
+  let merchant;
+  try {
+    merchant = await prisma.merchant.upsert({
+      where: { solanaWalletAddress: walletAddress },
+      update: {},
+      create: {
+        solanaWalletAddress: walletAddress,
+        email: `${slug}@wallet.dodorail.xyz`,
+        name: `Merchant ${slug}`,
+        slug,
+        referralCode: referralCodeFromWallet(walletAddress),
+      },
+    });
+  } catch (err) {
+    // Slug / email uniqueness collision on a second wallet-derived slug.
+    // Fall back to a longer slug suffix.
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[auth/verify] merchant upsert first attempt failed:", err);
+    }
+    const uniqueSlug = `${slug}-${walletAddress.slice(-4).toLowerCase()}`;
+    merchant = await prisma.merchant.upsert({
+      where: { solanaWalletAddress: walletAddress },
+      update: {},
+      create: {
+        solanaWalletAddress: walletAddress,
+        email: `${uniqueSlug}@wallet.dodorail.xyz`,
+        name: `Merchant ${uniqueSlug}`,
+        slug: uniqueSlug,
+        referralCode: referralCodeFromWallet(walletAddress),
+      },
+    });
+  }
 
   // 5. Issue session cookie + clear the now-used challenge.
   const sessionToken = await buildSessionToken({

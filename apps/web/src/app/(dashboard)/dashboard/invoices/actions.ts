@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "@dodorail/db";
 import { createDodoClient } from "@dodorail/dodo";
 import { requireSession } from "@/lib/auth";
+import { buildSolanaPayUrl } from "@/lib/solana-pay";
 
 const CreateSchema = z.object({
   amountUsd: z.string().refine((v) => !Number.isNaN(parseFloat(v)) && parseFloat(v) > 0, {
@@ -92,6 +93,32 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
     });
   } catch (e) {
     console.warn("[createInvoiceAction] dodo mock session failed:", e);
+  }
+
+  // Generate a Solana Pay URL if the USDC-on-Solana rail is accepted. Store
+  // the full solana: URL on the Invoice — the QR renderer + polling endpoint
+  // both read from it.
+  if (input.acceptedRails.includes("SOLANA_USDC")) {
+    try {
+      const rpcCluster: "mainnet-beta" | "devnet" =
+        (process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "").includes("mainnet")
+          ? "mainnet-beta"
+          : "devnet";
+      const sp = buildSolanaPayUrl({
+        merchantWalletAddress: session.merchant.solanaWalletAddress,
+        amountUsdCents: amountCents,
+        invoiceId: invoice.id,
+        merchantLabel: session.merchant.name,
+        description: input.description,
+        cluster: rpcCluster,
+      });
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { solanaPayUrl: sp.url },
+      });
+    } catch (e) {
+      console.warn("[createInvoiceAction] solana pay url generation failed:", e);
+    }
   }
 
   await prisma.event.create({

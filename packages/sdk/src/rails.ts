@@ -62,3 +62,17 @@ export const RAIL_STATUS: Record<RailId, "shipped" | "architectural"> = {
   IKA_ETH: "architectural",
   X402_AGENT: "shipped",
 };
+
+/**
+ * USDC SPL mint addresses on Solana. The devnet one is Circle's official
+ * faucet-backed test mint, mainnet is the real thing.
+ */
+export const USDC_MINTS = {
+  mainnet: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  devnet: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+} as const;
+
+export function usdcMintForCluster(cluster: "mainnet-beta" | "devnet" | string): string {
+  if (cluster === "mainnet-beta" || cluster === "mainnet") return USDC_MINTS.mainnet;
+  return USDC_MINTS.devnet;
+}

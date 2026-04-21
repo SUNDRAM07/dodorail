@@ -56,8 +56,12 @@ export function SignInCard({ next }: { next: string }) {
         body: JSON.stringify({ message, signature, walletAddress }),
       });
       if (!verifyRes.ok) {
-        const err = (await verifyRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? `verify failed: ${verifyRes.status}`);
+        const err = (await verifyRes.json().catch(() => ({}))) as {
+          error?: string;
+          detail?: string;
+        };
+        const composed = err.detail ? `${err.error ?? "error"}: ${err.detail}` : (err.error ?? `verify failed: ${verifyRes.status}`);
+        throw new Error(composed);
       }
       const { merchant } = (await verifyRes.json()) as { merchant: { slug: string } };
       setState({ kind: "success", slug: merchant.slug });

@@ -18,6 +18,29 @@ const nextConfig: NextConfig = {
     // Server Actions are stable in 15 but opt-in for body-size tweaks.
     serverActions: { bodySizeLimit: "2mb" },
   },
+  // Keep Prisma out of Next's bundle. Required so Vercel copies the Prisma
+  // Query Engine native binary (`libquery_engine-rhel-openssl-3.0.x.so.node`)
+  // alongside the function instead of Next trying to bundle it. Without this,
+  // runtime throws `PrismaClientInitializationError: Could not locate Query Engine`.
+  // Ref: https://pris.ly/d/engine-not-found-nextjs
+  serverExternalPackages: ["@prisma/client", "@prisma/engines", "prisma"],
+  // Force Next's file-tracer to include Prisma's generated client + the native
+  // engine binary. In a pnpm monorepo the generated client lives inside the
+  // hoisted `.pnpm` store; without these globs Vercel's function bundle misses
+  // the `.so.node` file and Prisma initialisation fails at runtime.
+  outputFileTracingIncludes: {
+    "/api/**/*": [
+      "../../node_modules/.pnpm/@prisma+client@**/node_modules/.prisma/client/**/*",
+      "../../node_modules/.pnpm/@prisma+client@**/node_modules/@prisma/client/**/*",
+      "../../node_modules/.pnpm/@prisma+engines@**/node_modules/@prisma/engines/**/*",
+      "../../node_modules/.prisma/client/**/*",
+    ],
+    "/**/*": [
+      "../../node_modules/.pnpm/@prisma+client@**/node_modules/.prisma/client/**/*",
+      "../../node_modules/.prisma/client/**/*",
+    ],
+  },
+  outputFileTracingRoot: require("path").join(__dirname, "../../"),
   // Mark WalletConnect's optional / Node-only transitive deps as externals so
   // webpack stops trying to bundle them into the client chunks.
   // `pino-pretty` is a dev-only peer of `pino`; `lokijs` / `encoding` are

@@ -2,6 +2,8 @@ import Link from "next/link";
 import {
   ArrowRight,
   Github,
+  LayoutDashboard,
+  LogIn,
   Send,
   Twitter,
   Wallet,
@@ -19,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { getSession } from "@/lib/auth";
 
 const DAY_OF = 1;
 const TOTAL_DAYS = 22;
@@ -90,7 +93,16 @@ function statusVariant(status: (typeof RAIL_STATUS)[RailId]): "shipped" | "archi
   return status === "shipped" ? "shipped" : "architectural";
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const authed = await getSession();
+  const initials = authed
+    ? authed.merchant.name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? "")
+        .join("") || "M"
+    : null;
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
       {/* Subtle burnt-orange radial gradient in the background */}
@@ -111,26 +123,39 @@ export default function HomePage() {
             </Badge>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-3">
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
               <a href={BRAND.social.github} target="_blank" rel="noreferrer">
                 <Github className="mr-1.5" /> GitHub
               </a>
             </Button>
-            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+            <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
               <a href={BRAND.social.xUrl} target="_blank" rel="noreferrer">
                 <Twitter className="mr-1.5" /> {BRAND.social.x}
               </a>
             </Button>
-            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-              <a href={BRAND.social.telegramUrl} target="_blank" rel="noreferrer">
-                <Send className="mr-1.5" /> Telegram
-              </a>
-            </Button>
-            <Button size="sm" asChild>
-              <a href="#rails">
-                Explore rails <ArrowRight />
-              </a>
-            </Button>
+            {authed ? (
+              <Button size="sm" asChild>
+                <Link href="/dashboard">
+                  <span className="mr-1.5 inline-flex size-5 items-center justify-center rounded-full bg-primary-foreground text-[10px] font-semibold text-primary">
+                    {initials}
+                  </span>
+                  Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/sign-in">
+                    <LogIn className="mr-1.5" /> Sign in
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/sign-in">
+                    Try with wallet <ArrowRight />
+                  </Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -154,13 +179,21 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <Button size="lg" asChild>
-                <a href="#rails">
-                  See the seven rails <ArrowRight />
-                </a>
+                <Link href={authed ? "/dashboard" : "/sign-in"}>
+                  {authed ? (
+                    <>
+                      <LayoutDashboard /> Open dashboard
+                    </>
+                  ) : (
+                    <>
+                      <Wallet /> Try it with your wallet
+                    </>
+                  )}
+                </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <a href={BRAND.social.github} target="_blank" rel="noreferrer">
-                  <Github /> Read the code
+                <a href="#rails">
+                  See the seven rails <ArrowRight />
                 </a>
               </Button>
             </div>

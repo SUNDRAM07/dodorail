@@ -15,6 +15,9 @@
     "test:watch": "vitest",
     "clean": "rm -rf dist .turbo"
   },
+  "dependencies": {
+    "svix": "^1.45.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.0",
