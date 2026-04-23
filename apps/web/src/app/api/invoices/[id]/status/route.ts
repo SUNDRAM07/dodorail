@@ -22,8 +22,10 @@ export const dynamic = "force-dynamic";
  *      Payment + mark Invoice PAID + return PAID.
  *   3. No Solana Pay URL → return the current status, that's it.
  *
- * This is the polling endpoint the /pay/[id] page hits every ~4 seconds.
- * When Helius webhooks land on Day 4, we'll demote this to a fallback.
+ * This is the polling endpoint the /pay/[id] page hits every ~2 seconds. As
+ * of Day 5 the Helius Enhanced webhook at /api/webhooks/helius is the fast
+ * path for Solana Pay confirmation — poll is the fallback for when Helius is
+ * slow or the merchant wallet hasn't been registered yet.
  */
 export async function GET(
   _: Request,

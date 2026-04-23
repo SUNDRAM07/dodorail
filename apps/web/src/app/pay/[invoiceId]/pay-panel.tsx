@@ -119,7 +119,10 @@ export function PayPanel({
       }
     };
     void poll(); // immediate first hit
-    pollTimer.current = setInterval(poll, 4000);
+    // Helius push webhook is the fast path (~1-3s from chain finality); this
+    // poll is the fallback for when push is lagging or unregistered. 2s keeps
+    // perceived latency tight without hammering Helius RPC.
+    pollTimer.current = setInterval(poll, 2000);
     return () => {
       cancelled = true;
       if (pollTimer.current) clearInterval(pollTimer.current);

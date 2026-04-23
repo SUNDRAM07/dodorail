@@ -13,14 +13,20 @@ export default async function DashboardHome() {
   if (!s) return null; // middleware redirects, but keep TS happy
   const { merchant } = s;
 
-  // Day 3 TODO: add a Payment.amountUsdCents integer column for volume math.
-  // sourceAmount is stringly-typed for multi-asset flexibility, so aggregate
-  // sum is a Day 3 concern once we split settled-USD out into its own column.
-  const [invoiceCount, paidInvoices] = await Promise.all([
+  // Volume math: sum amountUsdCents across all PAID invoices for this merchant.
+  // We aggregate on the Invoice row (not the Payment) because invoices carry
+  // the canonical USD-denominated amount regardless of which rail settled them.
+  // Payment.sourceAmount is stringly-typed for multi-asset flexibility and is
+  // not the right column to sum over.
+  const [invoiceCount, paidInvoices, volumeAgg] = await Promise.all([
     prisma.invoice.count({ where: { merchantId: merchant.id } }),
     prisma.invoice.count({ where: { merchantId: merchant.id, status: "PAID" } }),
+    prisma.invoice.aggregate({
+      where: { merchantId: merchant.id, status: "PAID" },
+      _sum: { amountUsdCents: true },
+    }),
   ]);
-  const totalVolumeCents = 0;
+  const totalVolumeCents = volumeAgg._sum.amountUsdCents ?? 0;
 
   const recentInvoices = await prisma.invoice.findMany({
     where: { merchantId: merchant.id },
@@ -34,7 +40,7 @@ export default async function DashboardHome() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <Badge variant="burnt" className="mb-2 font-mono text-[10px] uppercase tracking-widest">
-            Day 2 · merchant dashboard
+            merchant dashboard · live
           </Badge>
           <h1 className="text-3xl font-semibold tracking-tight">
             Welcome, <span className="text-burnt">{merchant.name}</span>
