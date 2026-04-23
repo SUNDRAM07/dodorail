@@ -37,12 +37,14 @@ const BodySchema = z.object({
   data: z
     .object({
       id: z.string().optional(),
+      payment_id: z.string().optional(), // Dodo live payload uses this for pay_xxx
       total_amount: z.number().optional(),
       amount: z.number().optional(),
       amountCents: z.number().optional(),
       currency: z.string().optional(),
       status: z.string().optional(),
       payment_method: z.string().optional(),
+      checkout_session_id: z.string().optional(), // Dodo live — the cks_xxx we stored at creation
       rail: z.string().optional(), // our mock
       sourceAsset: z.string().optional(), // our mock
       invoiceId: z.string().optional(), // our mock
@@ -88,11 +90,19 @@ function sourceAssetFromRail(
 }
 
 function extractInvoiceId(e: ParsedEvent): string | null {
-  // Priority: metadata.invoiceId (live) > data.invoiceId (mock)
+  // Priority: metadata.invoiceId (live + mock when we set it) > data.invoiceId (pure mock)
   const metaId = e.data.metadata?.invoiceId;
   if (typeof metaId === "string" && metaId.length > 0) return metaId;
   if (e.data.invoiceId) return e.data.invoiceId;
   return null;
+}
+
+function extractCheckoutSessionId(e: ParsedEvent): string | null {
+  // Dodo's payment.* webhook payload includes the originating checkout session id.
+  // Metadata we passed to POST /checkouts does NOT propagate to the payment object,
+  // so we match on checkout_session_id as the primary fallback.
+  const v = e.data.checkout_session_id;
+  return typeof v === "string" && v.length > 0 ? v : null;
 }
 
 function extractAmountCents(e: ParsedEvent): number | null {
@@ -158,28 +168,56 @@ export async function POST(req: Request) {
   }
 
   // 4. Locate invoice.
-  const invoiceId = extractInvoiceId(event);
-  if (!invoiceId) {
-    // Test-mode initial webhook can fire without our metadata (dashboard-triggered
-    // test events). Acknowledge gracefully, log, move on.
+  //
+  // Two lookup paths:
+  //   (a) metadata.invoiceId — works for our mock payloads and for checkout-level
+  //       events (checkout.session.completed carries the metadata we set).
+  //   (b) checkout_session_id — the live-mode payment.* events DROP checkout
+  //       metadata, so we match on the cks_xxx we persisted at invoice creation
+  //       (dodoSessionId column). This is the primary path for real Dodo
+  //       payments, and has been the bug that kept invoices stuck OPEN after
+  //       Day 4's live-mode flip.
+  const invoiceIdFromMeta = extractInvoiceId(event);
+  const checkoutSessionId = extractCheckoutSessionId(event);
+
+  let invoice = invoiceIdFromMeta
+    ? await prisma.invoice.findUnique({
+        where: { id: invoiceIdFromMeta },
+        select: { id: true, merchantId: true, amountUsdCents: true, status: true },
+      })
+    : null;
+
+  if (!invoice && checkoutSessionId) {
+    invoice = await prisma.invoice.findFirst({
+      where: { dodoSessionId: checkoutSessionId },
+      select: { id: true, merchantId: true, amountUsdCents: true, status: true },
+    });
+  }
+
+  if (!invoice) {
+    // No invoice match by either path — test-mode dashboard pings or stale
+    // events. Log, ack, move on. Don't 4xx — Dodo would retry forever.
     await prisma.event
       .create({
         data: {
           merchantId: (await prisma.merchant.findFirst({ select: { id: true } }))?.id ?? "unknown",
           type: "WEBHOOK_REJECTED",
-          payload: { reason: "missing_invoice_id", type: event.type, webhookId },
+          payload: {
+            reason: "invoice_not_found",
+            type: event.type,
+            webhookId,
+            invoiceIdFromMeta,
+            checkoutSessionId,
+          },
         },
       })
       .catch(() => void 0);
-    return NextResponse.json({ ok: true, noted: "no_invoice_metadata" });
-  }
-
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    select: { id: true, merchantId: true, amountUsdCents: true, status: true },
-  });
-  if (!invoice) {
-    return NextResponse.json({ error: "invoice_not_found", invoiceId }, { status: 404 });
+    return NextResponse.json({
+      ok: true,
+      noted: "no_matching_invoice",
+      invoiceIdFromMeta,
+      checkoutSessionId,
+    });
   }
 
   // 5. Dispatch by event type.
@@ -205,7 +243,7 @@ export async function POST(req: Request) {
         status: "CONFIRMED",
         processedAt: new Date(),
         confirmedAt: new Date(),
-        dodoPaymentId: event.data.id ?? null,
+        dodoPaymentId: event.data.payment_id ?? event.data.id ?? null,
         dodoWebhookId: webhookId || null,
       },
     });
@@ -239,7 +277,7 @@ export async function POST(req: Request) {
         sourceAmount: String(amountCents),
         status: isFailure ? "FAILED" : "PENDING",
         processedAt: new Date(),
-        dodoPaymentId: event.data.id ?? null,
+        dodoPaymentId: event.data.payment_id ?? event.data.id ?? null,
         dodoWebhookId: webhookId || null,
       },
     });
@@ -260,10 +298,11 @@ export async function POST(req: Request) {
 
   if (isRefundSucceeded) {
     // Mark the Payment REFUNDED if we can find it by dodo_payment_id.
-    if (event.data.id) {
+    const refundPaymentId = event.data.payment_id ?? event.data.id;
+    if (refundPaymentId) {
       await prisma.payment
         .updateMany({
-          where: { dodoPaymentId: event.data.id, merchantId: invoice.merchantId },
+          where: { dodoPaymentId: refundPaymentId, merchantId: invoice.merchantId },
           data: { status: "REFUNDED" },
         })
         .catch(() => void 0);

@@ -246,12 +246,19 @@ export function createDodoClient(options: DodoClientOptions = {}): DodoClient {
         "[@dodorail/dodo] live createCheckoutSession requires `productId`. Call createProduct() first.",
       );
     }
+    // Dodo's checkout frontend needs a billing-address jurisdiction to render
+    // its localised price + tax + payment-method set. Without `billing_address`,
+    // the customer lands on "Something went wrong". We default to IN for the
+    // DodoRail use-case (Indian founders selling globally, accepting via Dodo
+    // MoR); real jurisdictional routing is a future concern.
     const body: Record<string, unknown> = {
       product_cart: [{ product_id: input.productId, quantity: 1 }],
       customer: {
         email: input.customerEmail,
         ...(input.customerName ? { name: input.customerName } : {}),
       },
+      billing_address: { country: "IN" },
+      allowed_payment_method_types: ["credit", "debit", "upi_collect", "upi_intent"],
       ...(input.returnUrl ? { return_url: input.returnUrl } : {}),
       ...(input.metadata ? { metadata: input.metadata } : {}),
     };
