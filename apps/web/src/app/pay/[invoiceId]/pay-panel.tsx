@@ -33,10 +33,12 @@ export function PayPanel({
   invoiceId,
   rails,
   amountCents,
+  dodoCheckoutUrl,
 }: {
   invoiceId: string;
   rails: readonly Rail[];
   amountCents: number;
+  dodoCheckoutUrl: string | null;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string>(() => rails[0]?.id ?? "SOLANA_USDC");
@@ -317,18 +319,27 @@ export function PayPanel({
           </CardContent>
         </Card>
       ) : selected !== "SOLANA_USDC" ? (
-        <Button size="lg" className="w-full" onClick={simulateMock} disabled={pending}>
-          {state === "processing" ? (
-            <>
-              <Loader2 className="animate-spin" /> Settling…
-            </>
-          ) : (
-            <>
+        (selected === "DODO_CARD" || selected === "DODO_UPI") && dodoCheckoutUrl ? (
+          <Button size="lg" className="w-full" asChild>
+            <a href={dodoCheckoutUrl} rel="noopener">
               <Wallet /> Pay ${(amountCents / 100).toFixed(2)} via{" "}
-              {rails.find((r) => r.id === selected)?.label ?? selected}
-            </>
-          )}
-        </Button>
+              {rails.find((r) => r.id === selected)?.label ?? selected} <ExternalLink />
+            </a>
+          </Button>
+        ) : (
+          <Button size="lg" className="w-full" onClick={simulateMock} disabled={pending}>
+            {state === "processing" ? (
+              <>
+                <Loader2 className="animate-spin" /> Settling…
+              </>
+            ) : (
+              <>
+                <Wallet /> Pay ${(amountCents / 100).toFixed(2)} via{" "}
+                {rails.find((r) => r.id === selected)?.label ?? selected}
+              </>
+            )}
+          </Button>
+        )
       ) : null}
 
       {state === "error" && error && (

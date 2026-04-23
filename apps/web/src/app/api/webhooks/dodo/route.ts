@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { prisma } from "@dodorail/db";
 import { createDodoClient } from "@dodorail/dodo";
+import { track } from "@/lib/analytics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

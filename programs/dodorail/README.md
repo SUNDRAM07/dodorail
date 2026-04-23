@@ -1,6 +1,9 @@
 # programs/dodorail — DodoRail Anchor Program
 
-**Status:** Day 2 scaffold. Empty today.
+**Status:** ✅ Live on Solana devnet as of Day 4 (2026-04-22).
+**Program ID:** [`5jqD3PHpmaR1cHhdz4WNNPbiPmHPjg8rokxcZGCPhwqt`](https://explorer.solana.com/address/5jqD3PHpmaR1cHhdz4WNNPbiPmHPjg8rokxcZGCPhwqt?cluster=devnet)
+**Deploy tx:** [`3o56NbRmr6abzepUCphf5u7qLTwBfzGM4m9w15ZvfPMRvJJQe75QotKrvVF1kYJzUQoU2BU6fY1cbBSejdgoAbet`](https://explorer.solana.com/tx/3o56NbRmr6abzepUCphf5u7qLTwBfzGM4m9w15ZvfPMRvJJQe75QotKrvVF1kYJzUQoU2BU6fY1cbBSejdgoAbet?cluster=devnet)
+**Upgrade authority:** `12CVGCEY6tJLFCEhXhLxMMZK7bnjkJxrEowf46WFScA2` (devnet-only deployer wallet; mainnet will transfer to Squads 2-of-3)
 
 ## Scope (locked)
 

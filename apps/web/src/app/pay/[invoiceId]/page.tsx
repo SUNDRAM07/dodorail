@@ -118,7 +118,12 @@ export default async function PayPage({ params }: PageProps) {
                 </CardContent>
               </Card>
             ) : (
-              <PayPanel invoiceId={invoice.id} rails={railDefs} amountCents={invoice.amountUsdCents} />
+              <PayPanel
+                invoiceId={invoice.id}
+                rails={railDefs}
+                amountCents={invoice.amountUsdCents}
+                dodoCheckoutUrl={invoice.dodoCheckoutUrl}
+              />
             )}
           </div>
         </div>

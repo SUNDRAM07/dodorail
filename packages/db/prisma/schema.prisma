@@ -204,8 +204,12 @@ model Invoice {
   // Ika (architectural — stored but not written in v1)
   ikaDwalletId       String?         @map("ika_dwallet_id")
 
+  // Dodo per-invoice Product (created on invoice creation, used by checkout session)
+  dodoProductId      String?         @map("dodo_product_id")
+
   // External URLs
   dodoCheckoutUrl    String?         @map("dodo_checkout_url")
+  dodoSessionId      String?         @map("dodo_session_id")
   solanaPayUrl       String?         @map("solana_pay_url")
 
   // Relations

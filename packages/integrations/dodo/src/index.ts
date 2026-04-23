@@ -11,6 +11,8 @@ export type {
   DodoMode,
   CreateCheckoutSessionInput,
   CheckoutSession,
+  CreateProductInput,
+  DodoProduct,
   WebhookSignatureInput,
   DodoMerchant,
   DodoPaymentStatus,

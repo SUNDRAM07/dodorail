@@ -11,6 +11,7 @@ import {
   sharedCookieOpts,
 } from "@/lib/session";
 import { referralCodeFromWallet, slugFromWallet, verifySolanaSignature } from "@/lib/solana";
+import { identify, track } from "@/lib/analytics";
 
 // SNS reverse-lookup was moved OUT of this path on Day 3 evening: the
 // @bonfida/spl-name-service module has cold-start behaviour on Vercel
@@ -126,6 +127,25 @@ async function handler(req: Request): Promise<NextResponse> {
     merchantId: merchant.id,
     walletAddress,
   });
+
+  // 6. Fire analytics: identify merchant + sign_in_completed.
+  identify(merchant.id, {
+    slug: merchant.slug,
+    walletAddress,
+    referralCode: merchant.referralCode,
+    snsDomain: merchant.snsDomain,
+  });
+  track("sign_in_completed", merchant.id, {
+    walletAddress,
+    slug: merchant.slug,
+    wasNewMerchant: merchant.createdAt.getTime() > Date.now() - 5000, // created in last 5s
+  });
+  // Kick off SNS enrichment in the background — Day 4 Phase 5.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://dodorail.vercel.app";
+  fetch(`${appUrl}/api/enrich/sns/${merchant.id}`, {
+    method: "POST",
+    headers: { "x-dodorail-enrich-token": process.env.DODORAIL_SESSION_SECRET ?? "" },
+  }).catch(() => void 0); // fire-and-forget
   const res = NextResponse.json({
     merchant: {
       id: merchant.id,

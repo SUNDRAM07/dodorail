@@ -5,6 +5,7 @@ import BigNumber from "bignumber.js";
 import { prisma } from "@dodorail/db";
 import { extractReference, findMatchingPayment } from "@/lib/solana-pay";
 import { usdcMintForCluster } from "@dodorail/sdk";
+import { track } from "@/lib/analytics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -124,6 +125,13 @@ export async function GET(
           source: "solana-pay-poll",
         },
       },
+    });
+    track("payment_confirmed", invoice.merchantId, {
+      invoiceId: invoice.id,
+      rail: "SOLANA_USDC",
+      amountCents: invoice.amountUsdCents,
+      settlementTxSig: match.signature,
+      source: "solana-pay-poll",
     });
 
     return NextResponse.json({

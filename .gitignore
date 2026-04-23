@@ -44,7 +44,17 @@ packages/db/prisma/migrations/dev.db*
 # Anchor / Solana (Day 2+)
 programs/*/target/
 programs/*/.anchor/
-**/*.so
+# Gitignore Rust target dirs but DO commit the deploy artefact + program keypair
+# so Sundaram can `solana program deploy` without re-building.
+target/debug/
+target/release/
+target/sbf-solana-solana/
+target/build-sbf/
+target/.rustc_info.json
+target/CACHEDIR.TAG
+!target/deploy/
+!target/deploy/*.so
+!target/deploy/*-keypair.json
 
 # Next.js
 .next/

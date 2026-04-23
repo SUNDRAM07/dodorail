@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { buildChallenge, COOKIE_MAX_AGE, COOKIE_NAMES, sharedCookieOpts } from "@/lib/session";
+import { track } from "@/lib/analytics";
 
 export const runtime = "nodejs"; // we use Node's crypto; avoid Edge
 
@@ -33,6 +34,8 @@ export async function POST(req: Request) {
   const { walletAddress } = parsed.data;
 
   const { token, message, expiresAt } = await buildChallenge(walletAddress);
+
+  track("sign_in_started", walletAddress, { walletAddress });
 
   const res = NextResponse.json({ message, expiresAt });
   res.cookies.set(COOKIE_NAMES.challenge, token, {

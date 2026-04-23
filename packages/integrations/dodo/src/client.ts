@@ -41,6 +41,8 @@ export interface DodoClientOptions {
 
 export interface CreateCheckoutSessionInput {
   merchantId: string;
+  /** Dodo Product ID created ahead of time via createProduct(). */
+  productId?: string;
   amountCents: number;
   currency: "USD" | "INR";
   customerEmail: string;
@@ -48,6 +50,8 @@ export interface CreateCheckoutSessionInput {
   description?: string;
   successUrl?: string;
   cancelUrl?: string;
+  /** Return URL Dodo redirects the customer to after checkout. */
+  returnUrl?: string;
   metadata?: Record<string, string>;
 }
 
@@ -59,6 +63,25 @@ export interface CheckoutSession {
   currency: "USD" | "INR";
   status: "open" | "expired" | "completed";
   expiresAt: string;
+}
+
+export interface CreateProductInput {
+  name: string;
+  description?: string;
+  amountCents: number;
+  currency: "USD" | "INR";
+  /** Dodo requires a tax category — our invoices map to "saas". */
+  taxCategory?: "saas" | "digital_products" | "e_book" | "saas_subscription";
+  /** Hide from the Dodo storefront — we use products only as invoice backing. */
+  purchasingPowerParity?: boolean;
+}
+
+export interface DodoProduct {
+  id: string;
+  name: string;
+  amountCents: number;
+  currency: "USD" | "INR";
+  createdAt: string;
 }
 
 export interface WebhookSignatureInput {
@@ -81,6 +104,7 @@ export interface DodoClient {
   readonly featureFlag: boolean;
   initialise(): Promise<void>;
   healthcheck(): Promise<{ ok: boolean; latencyMs: number; message?: string }>;
+  createProduct(input: CreateProductInput): Promise<DodoProduct>;
   createCheckoutSession(input: CreateCheckoutSessionInput): Promise<CheckoutSession>;
   getMerchant(merchantId: string): Promise<DodoMerchant>;
   verifyWebhookSignature(input: WebhookSignatureInput): boolean;
@@ -148,15 +172,64 @@ export function createDodoClient(options: DodoClientOptions = {}): DodoClient {
     }
   }
 
+  async function createProduct(input: CreateProductInput): Promise<DodoProduct> {
+    if (mode === "mock") {
+      return {
+        id: `pdt_mock_${Math.random().toString(36).slice(2, 10)}`,
+        name: input.name,
+        amountCents: input.amountCents,
+        currency: input.currency,
+        createdAt: new Date().toISOString(),
+      };
+    }
+    guard("createProduct");
+    const body = {
+      name: input.name,
+      description: input.description ?? null,
+      tax_category: input.taxCategory ?? "saas",
+      price: {
+        type: "one_time_price",
+        price: input.amountCents,
+        currency: input.currency,
+        discount: 0,
+        purchasing_power_parity: input.purchasingPowerParity ?? false,
+      },
+    };
+    const res = await fetchImpl(`${baseUrl}/products`, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        authorization: `Bearer ${options.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `[@dodorail/dodo] createProduct failed: HTTP ${res.status} ${text.slice(0, 300)}`,
+      );
+    }
+    const json = (await res.json()) as {
+      product_id: string;
+      name: string;
+      created_at: string;
+      price: { price: number; currency: "USD" | "INR" };
+    };
+    return {
+      id: json.product_id,
+      name: json.name,
+      amountCents: json.price.price,
+      currency: json.price.currency,
+      createdAt: json.created_at,
+    };
+  }
+
   async function createCheckoutSession(
     input: CreateCheckoutSessionInput,
   ): Promise<CheckoutSession> {
-    // Day 3 intentional: mock only. Live wiring lands Day 4 once we ship
-    // per-merchant Product provisioning during onboarding. File 22 §11
-    // closing note: ship mocks first, real integrations second; never expose
-    // half-wired flows to judges.
-    if (mode === "mock" || mode === "live") {
-      const id = `cs_${mode === "live" ? "test" : "mock"}_${Math.random().toString(36).slice(2, 10)}`;
+    if (mode === "mock") {
+      const id = `cs_mock_${Math.random().toString(36).slice(2, 10)}`;
       return {
         id,
         url: `https://checkout.dodopayments.com/session/${id}?demo=1`,
@@ -167,7 +240,46 @@ export function createDodoClient(options: DodoClientOptions = {}): DodoClient {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       };
     }
-    throw new Error("[@dodorail/dodo] unreachable");
+    guard("createCheckoutSession");
+    if (!input.productId) {
+      throw new Error(
+        "[@dodorail/dodo] live createCheckoutSession requires `productId`. Call createProduct() first.",
+      );
+    }
+    const body: Record<string, unknown> = {
+      product_cart: [{ product_id: input.productId, quantity: 1 }],
+      customer: {
+        email: input.customerEmail,
+        ...(input.customerName ? { name: input.customerName } : {}),
+      },
+      ...(input.returnUrl ? { return_url: input.returnUrl } : {}),
+      ...(input.metadata ? { metadata: input.metadata } : {}),
+    };
+    const res = await fetchImpl(`${baseUrl}/checkouts`, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        authorization: `Bearer ${options.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `[@dodorail/dodo] createCheckoutSession failed: HTTP ${res.status} ${text.slice(0, 300)}`,
+      );
+    }
+    const json = (await res.json()) as { session_id: string; checkout_url: string };
+    return {
+      id: json.session_id,
+      url: json.checkout_url,
+      merchantId: input.merchantId,
+      amountCents: input.amountCents,
+      currency: input.currency,
+      status: "open",
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    };
   }
 
   async function getMerchant(merchantId: string): Promise<DodoMerchant> {
@@ -241,6 +353,7 @@ export function createDodoClient(options: DodoClientOptions = {}): DodoClient {
     featureFlag: enabled,
     initialise,
     healthcheck,
+    createProduct,
     createCheckoutSession,
     getMerchant,
     verifyWebhookSignature,

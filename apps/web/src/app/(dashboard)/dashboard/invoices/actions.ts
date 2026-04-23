@@ -77,22 +77,67 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
     },
   });
 
-  try {
-    const session_ = await dodo.createCheckoutSession({
-      merchantId: session.merchant.dodoMerchantId ?? session.merchant.id,
-      amountCents,
-      currency: "USD",
-      customerEmail: input.customerEmail,
-      customerName: input.customerName,
-      description: input.description,
-      metadata: { invoiceId: invoice.id },
-    });
-    await prisma.invoice.update({
-      where: { id: invoice.id },
-      data: { dodoCheckoutUrl: session_.url },
-    });
-  } catch (e) {
-    console.warn("[createInvoiceAction] dodo mock session failed:", e);
+  // Dodo flow (for DODO_CARD / DODO_UPI rails):
+  //   1. Create an ad-hoc Product with the exact invoice amount.
+  //   2. Create a Checkout Session referencing that Product, with the invoice
+  //      id in metadata so webhooks can round-trip.
+  //   3. Store both on the Invoice row. If any call fails, we still have a
+  //      working invoice (Solana Pay path is independent).
+  if (
+    input.acceptedRails.some((r) => r === "DODO_CARD" || r === "DODO_UPI") &&
+    dodo.mode === "live"
+  ) {
+    try {
+      const product = await dodo.createProduct({
+        name: `DodoRail invoice ${invoice.id.slice(0, 8)}`,
+        description: input.description ?? `Invoice from ${session.merchant.name}`,
+        amountCents,
+        currency: "USD",
+        taxCategory: "saas",
+      });
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { dodoProductId: product.id },
+      });
+      const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dodorail.vercel.app"}/pay/${invoice.id}?dodo=complete`;
+      const checkout = await dodo.createCheckoutSession({
+        merchantId: session.merchant.dodoMerchantId ?? session.merchant.id,
+        productId: product.id,
+        amountCents,
+        currency: "USD",
+        customerEmail: input.customerEmail,
+        customerName: input.customerName,
+        description: input.description,
+        returnUrl,
+        metadata: { invoiceId: invoice.id, merchantSlug: session.merchant.slug },
+      });
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { dodoCheckoutUrl: checkout.url, dodoSessionId: checkout.id },
+      });
+    } catch (e) {
+      console.warn("[createInvoiceAction] dodo live session failed:", e);
+    }
+  } else {
+    // Mock fallback — useful in dev or when Dodo rails aren't accepted.
+    try {
+      const checkout = await dodo.createCheckoutSession({
+        merchantId: session.merchant.dodoMerchantId ?? session.merchant.id,
+        productId: undefined,
+        amountCents,
+        currency: "USD",
+        customerEmail: input.customerEmail,
+        customerName: input.customerName,
+        description: input.description,
+        metadata: { invoiceId: invoice.id },
+      });
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { dodoCheckoutUrl: checkout.url, dodoSessionId: checkout.id },
+      });
+    } catch (e) {
+      console.warn("[createInvoiceAction] dodo mock session failed:", e);
+    }
   }
 
   // Generate a Solana Pay URL if the USDC-on-Solana rail is accepted. Store

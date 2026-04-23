@@ -77,7 +77,9 @@ dodorail-agent/                      (separate repo — Day 13-14)
 | LP Agent | Day 11-12 | Powers idle-treasury yield |
 | Ika | Architectural only | Pre-alpha — mock signer, UI + essay |
 | x402 (inbound + outbound) | Day 13-14 | Merchant API returns 402; agent pays Zerion via x402 |
-| Anchor program | Day 2-5 devnet, Day 10 mainnet | 2 instructions, Squads multisig upgrade authority |
+| Anchor program | ✅ Day 4 devnet live, Day 10 mainnet | 2 instructions, Squads multisig upgrade authority |
+
+**Live devnet program:** [`5jqD3PHpmaR1cHhdz4WNNPbiPmHPjg8rokxcZGCPhwqt`](https://explorer.solana.com/address/5jqD3PHpmaR1cHhdz4WNNPbiPmHPjg8rokxcZGCPhwqt?cluster=devnet) · Finalized 2026-04-22.
 
 ### Integration isolation rule
 
