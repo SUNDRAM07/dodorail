@@ -17,6 +17,8 @@
     "@dodorail/sdk": "workspace:*",
     "@dodorail/ui": "workspace:*",
     "@dodorail/dodo": "workspace:*",
+    "@dodorail/dune": "workspace:*",
+    "@dodorail/goldrush": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.4",
     "@sentry/nextjs": "^8.50.0",
     "posthog-js": "^1.200.0",
