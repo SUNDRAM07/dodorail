@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { DuneVolumeTile } from "@/components/dune-volume-tile";
 
 export default async function DashboardHome() {
   const s = await getSession();
@@ -57,7 +58,7 @@ export default async function DashboardHome() {
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* Stats — merchant-specific tiles row 1 */}
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -91,6 +92,11 @@ export default async function DashboardHome() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Ecosystem tiles row 2 — public Solana data, not merchant-specific. */}
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <DuneVolumeTile />
       </div>
 
       <Separator className="my-10" />
