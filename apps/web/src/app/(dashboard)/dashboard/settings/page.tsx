@@ -136,7 +136,7 @@ export default async function SettingsPage() {
 
           {!cloakRegistered && (
             <p className="text-xs text-muted-foreground">
-              You'll be able to export once your viewing key is registered (happens
+              You&apos;ll be able to export once your viewing key is registered (happens
               automatically on your first private invoice).
             </p>
           )}

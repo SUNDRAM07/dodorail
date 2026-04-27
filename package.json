@@ -24,6 +24,8 @@
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "db:generate": "turbo run db:generate",
     "db:migrate": "pnpm --filter @dodorail/db db:migrate",
+    "db:push": "pnpm --filter @dodorail/db db:push",
+    "db:deploy": "pnpm --filter @dodorail/db db:deploy",
     "db:seed": "pnpm --filter @dodorail/db db:seed",
     "db:studio": "pnpm --filter @dodorail/db db:studio",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdx,yml,yaml}\" --ignore-path .gitignore",

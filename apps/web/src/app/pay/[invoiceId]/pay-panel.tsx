@@ -270,9 +270,9 @@ export function PayPanel({
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              This invoice is set to private. Your payment routes through Cloak's
+              This invoice is set to private. Your payment routes through Cloak&apos;s
               shielded pool — the chain only sees an unattributable deposit, never
-              your wallet linked to the merchant's wallet.
+              your wallet linked to the merchant&apos;s wallet.
             </p>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Browser-native Groth16 ZK proof · ~3s prove · &lt;50ms verify
