@@ -38,6 +38,7 @@ enum SettlementCurrency {
 
 enum PrivateProvider {
   NONE
+  CLOAK
   UMBRA
   MAGICBLOCK
 
@@ -116,8 +117,11 @@ enum EventType {
   MERCHANT_ONBOARDED
   PRIVATE_TRANSFER_SETTLED
   WEBHOOK_REJECTED
+  WEBHOOK_RECEIVED
   YIELD_ZAP_IN
   YIELD_ZAP_OUT
+  COMPLIANCE_EXPORT_GENERATED
+  CLOAK_VIEWING_KEY_REGISTERED
 
   @@map("event_type")
 }
@@ -146,6 +150,12 @@ model Merchant {
   settlementCurrency     SettlementCurrency @default(USDC_SOLANA) @map("settlement_currency")
   privateModeDefault     Boolean            @default(false) @map("private_mode_default")
   privateProvider        PrivateProvider    @default(NONE) @map("private_provider")
+
+  // Cloak — per-merchant viewing key (32-byte nk, base64-encoded). Registered
+  // on first protocol interaction via wallet signature. Auditors receive a
+  // scoped derivative of this key to read the merchant's shielded history.
+  cloakViewingKey            String?         @map("cloak_viewing_key")
+  cloakViewingKeyRegisteredAt DateTime?      @map("cloak_viewing_key_registered_at")
 
   // Yield
   yieldEnabled           Boolean            @default(false) @map("yield_enabled")
@@ -211,6 +221,14 @@ model Invoice {
   dodoCheckoutUrl    String?         @map("dodo_checkout_url")
   dodoSessionId      String?         @map("dodo_session_id")
   solanaPayUrl       String?         @map("solana_pay_url")
+
+  // Cloak (privacy rail) — pre-allocated note + customer-side deposit tx.
+  // cloakNoteCommitment is the on-chain commitment string we stored when we
+  // generated the note for this invoice (server-side, before customer pays).
+  // cloakDepositTxSig is the deposit transaction signature, captured when
+  // the customer's browser submits the proof.
+  cloakNoteCommitment String?        @map("cloak_note_commitment")
+  cloakDepositTxSig   String?        @map("cloak_deposit_tx_sig")
 
   // Relations
   payments           Payment[]

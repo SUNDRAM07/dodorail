@@ -34,14 +34,23 @@ export function PayPanel({
   rails,
   amountCents,
   dodoCheckoutUrl,
+  privateMode = false,
+  privateProvider = "NONE",
 }: {
   invoiceId: string;
   rails: readonly Rail[];
   amountCents: number;
   dodoCheckoutUrl: string | null;
+  privateMode?: boolean;
+  privateProvider?: string;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string>(() => rails[0]?.id ?? "SOLANA_USDC");
+  const [cloakState, setCloakState] = useState<
+    "idle" | "circuits" | "proving" | "submitting" | "confirmed" | "failed"
+  >("idle");
+  const [cloakError, setCloakError] = useState<string | null>(null);
+  const [cloakTx, setCloakTx] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [state, setState] = useState<"idle" | "processing" | "done" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +138,70 @@ export function PayPanel({
     };
   }, [invoiceId, router]);
 
+  // Cloak private payment flow.
+  //
+  // Real flow (Day 16+, mainnet):
+  //   1. Pull circuits from S3 (cached after first load) — ~1-2s first time
+  //   2. Connect wallet via @solana/wallet-adapter-react
+  //   3. Generate Groth16 proof browser-side via @cloak.dev/sdk transact() —
+  //      ~3s on a modern laptop, longer on slow devices
+  //   4. Sign + submit the deposit tx through the wallet adapter
+  //   5. Wait for chain confirmation (Helius webhook fires the invoice
+  //      flip via /api/webhooks/helius)
+  //   6. PAID polling picks up the flip (same path as the USDC rail)
+  //
+  // Day 7 mock-mode flow:
+  //   - Animate through the four states (circuits / proving / submitting /
+  //     confirmed) with realistic delays so the UX matches what the demo
+  //     video will capture on Day 17
+  //   - On "confirmed", fire the same mock-webhook as the other test paths
+  //     so the invoice actually flips to PAID in the dashboard
+  const payViaCloak = useCallback(() => {
+    setCloakError(null);
+    setCloakTx(null);
+    void (async () => {
+      try {
+        setCloakState("circuits");
+        await new Promise((r) => setTimeout(r, 800));
+        setCloakState("proving");
+        await new Promise((r) => setTimeout(r, 2400));
+        setCloakState("submitting");
+        await new Promise((r) => setTimeout(r, 1200));
+        // Fire the mock-webhook to flip the invoice in the database.
+        const res = await fetch("/api/webhooks/dodo", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "webhook-signature": "mock_sig_for_cloak",
+            "webhook-id": `mock_cloak_${invoiceId}_${Date.now()}`,
+            "webhook-timestamp": String(Math.floor(Date.now() / 1000)),
+          },
+          body: JSON.stringify({
+            type: "payment.succeeded",
+            data: {
+              invoiceId,
+              rail: "SOLANA_USDC",
+              sourceAsset: "USDC",
+              amountCents,
+              mock: true,
+              privateProvider: "CLOAK",
+            },
+          }),
+        });
+        if (!res.ok) throw new Error(`webhook returned ${res.status}`);
+        const fakeSig = `mock_cloak_${Math.random().toString(36).slice(2, 14)}${Math.random()
+          .toString(36)
+          .slice(2, 14)}`;
+        setCloakTx(fakeSig);
+        setCloakState("confirmed");
+        setTimeout(() => router.refresh(), 800);
+      } catch (e) {
+        setCloakError(e instanceof Error ? e.message : "Cloak flow failed");
+        setCloakState("failed");
+      }
+    })();
+  }, [amountCents, invoiceId, router]);
+
   // Fallback "simulate via mock webhook" for rails other than SOLANA_USDC.
   const simulateMock = useCallback(() => {
     startTransition(async () => {
@@ -185,9 +258,91 @@ export function PayPanel({
 
   return (
     <>
+      {/* Private mode banner — shown when the merchant set this invoice
+          to private. Lifts the Cloak flow above the regular rail picker so
+          customers see the privacy option first. */}
+      {privateMode && privateProvider === "CLOAK" && cloakState !== "confirmed" && (
+        <Card className="border-burnt/40 bg-burnt/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="size-4 text-burnt" /> Pay privately via Cloak
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This invoice is set to private. Your payment routes through Cloak's
+              shielded pool — the chain only sees an unattributable deposit, never
+              your wallet linked to the merchant's wallet.
+            </p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Browser-native Groth16 ZK proof · ~3s prove · &lt;50ms verify
+            </p>
+
+            {cloakState === "idle" && (
+              <Button onClick={payViaCloak} size="lg" className="w-full">
+                <ShieldCheck /> Pay ${(amountCents / 100).toFixed(2)} privately
+              </Button>
+            )}
+
+            {(cloakState === "circuits" ||
+              cloakState === "proving" ||
+              cloakState === "submitting") && (
+              <div className="space-y-2 rounded-md border border-line bg-background/60 p-3 font-mono text-xs">
+                <CloakStateRow
+                  active={cloakState === "circuits"}
+                  done={cloakState !== "circuits"}
+                  label="Loading circuits from S3"
+                />
+                <CloakStateRow
+                  active={cloakState === "proving"}
+                  done={cloakState === "submitting" || cloakState === "confirmed"}
+                  label="Generating Groth16 proof"
+                />
+                <CloakStateRow
+                  active={cloakState === "submitting"}
+                  done={cloakState === "confirmed"}
+                  label="Submitting deposit transaction"
+                />
+              </div>
+            )}
+
+            {cloakState === "failed" && (
+              <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
+                {cloakError ?? "Cloak flow failed. Try again."}
+              </p>
+            )}
+
+            <p className="text-[10px] text-muted-foreground">
+              Cloak program{" "}
+              <span className="font-mono">zh1eLd6r…fwA6qRkW</span> · relay{" "}
+              <span className="font-mono">api.cloak.ag</span> · MIT-licensed
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {privateMode && cloakState === "confirmed" && (
+        <Card className="border-emerald-500/40">
+          <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+            <CheckCircle2 className="size-8 text-emerald-400" />
+            <p className="text-base font-medium">Private payment confirmed</p>
+            {cloakTx && (
+              <p className="font-mono text-[10px] text-muted-foreground break-all max-w-full px-4">
+                tx {cloakTx.slice(0, 8)}…{cloakTx.slice(-8)}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Shielded · merchant sees the receipt, the chain stays opaque
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Pick a payment rail</CardTitle>
+          <CardTitle className="text-base">
+            {privateMode ? "Or pay publicly" : "Pick a payment rail"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {rails.map((r) => (
@@ -355,5 +510,30 @@ export function PayPanel({
         settlement currency: USDC on Solana
       </p>
     </>
+  );
+}
+
+function CloakStateRow({
+  active,
+  done,
+  label,
+}: {
+  active: boolean;
+  done: boolean;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {done ? (
+        <CheckCircle2 className="size-3.5 text-emerald-400" />
+      ) : active ? (
+        <Loader2 className="size-3.5 animate-spin text-burnt" />
+      ) : (
+        <span className="inline-block size-3.5 rounded-full border border-line" />
+      )}
+      <span className={done ? "text-muted-foreground" : active ? "text-foreground" : "text-muted-foreground"}>
+        {label}
+      </span>
+    </div>
   );
 }

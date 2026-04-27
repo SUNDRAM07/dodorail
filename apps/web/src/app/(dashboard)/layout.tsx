@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Wallet, LogOut, Plus, LayoutDashboard, FileText } from "lucide-react";
+import { Wallet, LogOut, Plus, LayoutDashboard, FileText, ShieldCheck } from "lucide-react";
 
 import { getSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
               className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground"
             >
               <FileText className="size-4" /> Invoices
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground"
+            >
+              <ShieldCheck className="size-4" /> Privacy
             </Link>
             <Button size="sm" asChild>
               <Link href="/dashboard/invoices/new">

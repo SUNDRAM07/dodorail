@@ -123,6 +123,8 @@ export default async function PayPage({ params }: PageProps) {
                 rails={railDefs}
                 amountCents={invoice.amountUsdCents}
                 dodoCheckoutUrl={invoice.dodoCheckoutUrl}
+                privateMode={invoice.privateMode}
+                privateProvider={invoice.privateProvider}
               />
             )}
           </div>

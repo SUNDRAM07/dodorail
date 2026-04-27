@@ -127,9 +127,9 @@ export function InvoiceForm() {
       <label className="flex items-start gap-3 rounded-md border border-line p-3 cursor-pointer hover:border-burnt/60 has-[:checked]:border-burnt has-[:checked]:bg-burnt/5">
         <input type="checkbox" name="privateMode" className="mt-1 accent-burnt" />
         <div className="flex-1">
-          <p className="text-sm font-medium">Private mode (Umbra)</p>
+          <p className="text-sm font-medium">Private mode · Cloak</p>
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            +0.50% · amount + parties shielded · Day 11 live
+            shielded UTXO · Groth16 ZK proof · ~3s prove · merchant-side audit CSV
           </p>
         </div>
       </label>

@@ -73,7 +73,11 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
       expiresAt,
       acceptedRails: input.acceptedRails,
       privateMode: input.privateMode ?? false,
-      privateProvider: input.privateMode ? "UMBRA" : "NONE",
+      // Cloak is the primary privacy stack as of Day 7 — Umbra is the
+      // secondary fallback (interface-compatible, ~80% method overlap).
+      // The merchant's privateProvider field on Merchant overrides this on
+      // a per-merchant basis; default for new invoices is CLOAK.
+      privateProvider: input.privateMode ? "CLOAK" : "NONE",
     },
   });
 
