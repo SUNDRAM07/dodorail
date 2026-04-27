@@ -321,6 +321,69 @@ export function PayPanel({
         </Card>
       )}
 
+      {/* Umbra branch — reuses the same state machine as Cloak (cloakState)
+          since only one privacy provider runs per invoice. The labels and
+          technical details differ; the customer experience is parallel. */}
+      {privateMode && privateProvider === "UMBRA" && cloakState !== "confirmed" && (
+        <Card className="border-burnt/40 bg-burnt/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="size-4 text-burnt" /> Pay privately via Umbra
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This invoice is set to private. Your payment routes through Umbra&apos;s
+              encrypted account on Solana — the chain shows a Merkle update, never
+              your wallet&apos;s identity linked to the merchant&apos;s.
+            </p>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Arcium MPC + ZK · viewing-key compliance · devnet + mainnet
+            </p>
+
+            {cloakState === "idle" && (
+              <Button onClick={payViaCloak} size="lg" className="w-full">
+                <ShieldCheck /> Pay ${(amountCents / 100).toFixed(2)} privately
+              </Button>
+            )}
+
+            {(cloakState === "circuits" ||
+              cloakState === "proving" ||
+              cloakState === "submitting") && (
+              <div className="space-y-2 rounded-md border border-line bg-background/60 p-3 font-mono text-xs">
+                <CloakStateRow
+                  active={cloakState === "circuits"}
+                  done={cloakState !== "circuits"}
+                  label="Connecting to Umbra"
+                />
+                <CloakStateRow
+                  active={cloakState === "proving"}
+                  done={cloakState === "submitting"}
+                  label="Encrypting via Arcium MPC"
+                />
+                <CloakStateRow
+                  active={cloakState === "submitting"}
+                  done={false}
+                  label="Finalising on chain"
+                />
+              </div>
+            )}
+
+            {cloakState === "failed" && (
+              <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
+                {cloakError ?? "Umbra flow failed. Try again."}
+              </p>
+            )}
+
+            <p className="text-[10px] text-muted-foreground">
+              Umbra program{" "}
+              <span className="font-mono">UMBRAD2…oLykh</span> · powered by
+              {" "}<span className="font-mono">@umbra-privacy/sdk</span> · MIT-licensed
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {privateMode && cloakState === "confirmed" && (
         <Card className="border-emerald-500/40">
           <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
@@ -332,7 +395,9 @@ export function PayPanel({
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              Shielded · merchant sees the receipt, the chain stays opaque
+              Shielded via{" "}
+              {privateProvider === "UMBRA" ? "Umbra" : "Cloak"} · merchant sees
+              the receipt, the chain stays opaque
             </p>
           </CardContent>
         </Card>

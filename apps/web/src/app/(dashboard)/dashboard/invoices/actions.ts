@@ -63,6 +63,21 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
 
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+  // Read the merchant's preferred privacy provider (settable from
+  // /dashboard/settings). When the merchant hasn't picked, default to CLOAK
+  // since that's the track-narrative match. NONE is reserved for
+  // privateMode === false invoices.
+  const merchantRow = await prisma.merchant.findUnique({
+    where: { id: session.merchant.id },
+    select: { privateProvider: true },
+  });
+  const merchantProvider = merchantRow?.privateProvider ?? "NONE";
+  const resolvedProvider = input.privateMode
+    ? merchantProvider !== "NONE"
+      ? merchantProvider
+      : "CLOAK"
+    : "NONE";
+
   const invoice = await prisma.invoice.create({
     data: {
       merchantId: session.merchant.id,
@@ -73,11 +88,7 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
       expiresAt,
       acceptedRails: input.acceptedRails,
       privateMode: input.privateMode ?? false,
-      // Cloak is the primary privacy stack as of Day 7 — Umbra is the
-      // secondary fallback (interface-compatible, ~80% method overlap).
-      // The merchant's privateProvider field on Merchant overrides this on
-      // a per-merchant basis; default for new invoices is CLOAK.
-      privateProvider: input.privateMode ? "CLOAK" : "NONE",
+      privateProvider: resolvedProvider,
     },
   });
 

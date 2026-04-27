@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 import { CloakComplianceExportButton } from "./cloak-export-button";
+import { PrivacyProviderForm } from "./privacy-provider-form";
 
 export default async function SettingsPage() {
   const s = await getSession();
@@ -44,7 +45,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      {/* Privacy stack status */}
+      {/* Privacy stack — pick provider + default mode */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -52,32 +53,10 @@ export default async function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-md border border-line bg-background/60 p-3">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                provider
-              </p>
-              <p className="mt-1 text-sm">
-                {provider === "NONE" ? (
-                  <span className="text-muted-foreground">Not configured</span>
-                ) : (
-                  <span className="font-medium">{provider}</span>
-                )}
-              </p>
-            </div>
-            <div className="rounded-md border border-line bg-background/60 p-3">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                private mode default
-              </p>
-              <p className="mt-1 text-sm">
-                {merchant.privateModeDefault ? (
-                  <span className="text-emerald-400">On — every new invoice is private</span>
-                ) : (
-                  <span className="text-muted-foreground">Off — opt-in per invoice</span>
-                )}
-              </p>
-            </div>
-          </div>
+          <PrivacyProviderForm
+            initialProvider={provider}
+            initialPrivateModeDefault={merchant.privateModeDefault}
+          />
 
           <Separator />
 
