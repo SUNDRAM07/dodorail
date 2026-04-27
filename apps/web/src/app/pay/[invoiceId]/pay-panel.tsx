@@ -295,12 +295,12 @@ export function PayPanel({
                 />
                 <CloakStateRow
                   active={cloakState === "proving"}
-                  done={cloakState === "submitting" || cloakState === "confirmed"}
+                  done={cloakState === "submitting"}
                   label="Generating Groth16 proof"
                 />
                 <CloakStateRow
                   active={cloakState === "submitting"}
-                  done={cloakState === "confirmed"}
+                  done={false}
                   label="Submitting deposit transaction"
                 />
               </div>
