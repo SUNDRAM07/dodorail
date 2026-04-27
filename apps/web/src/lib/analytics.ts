@@ -42,7 +42,9 @@ export type AnalyticsEvent =
   | "payment_confirmed"
   | "payment_failed"
   | "webhook_received"
-  | "webhook_rejected";
+  | "webhook_rejected"
+  | "compliance_export_generated"
+  | "cloak_viewing_key_registered";
 
 export function track(
   event: AnalyticsEvent,
