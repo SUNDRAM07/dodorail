@@ -21,6 +21,7 @@
     "@dodorail/goldrush": "workspace:*",
     "@dodorail/cloak": "workspace:*",
     "@dodorail/umbra": "workspace:*",
+    "@dodorail/tether": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.4",
     "@sentry/nextjs": "^8.50.0",
     "posthog-js": "^1.200.0",

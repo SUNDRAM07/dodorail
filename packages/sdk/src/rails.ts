@@ -41,6 +41,29 @@ export const RAILS = {
     feeBps: 100,
     architectural: true,
   },
+  SOLANA_USDT: {
+    id: "SOLANA_USDT",
+    label: "USDT on Solana",
+    description: "Native Tether USD (Es9vMFr…NYB) — most-held stablecoin globally, ~$2.4B on Solana",
+    settlesIn: "USDC",
+    feeBps: 50,
+  },
+  SOLANA_USDT0: {
+    id: "SOLANA_USDT0",
+    label: "USDT cross-chain (USDT0)",
+    description:
+      "Customer pays USDT from Ethereum / Tron / BNB / Polygon / Arbitrum / Base / Optimism / Avalanche; LayerZero OFT bridges to Solana USDT0",
+    settlesIn: "USDC",
+    feeBps: 75,
+  },
+  SOLANA_XAUT0: {
+    id: "SOLANA_XAUT0",
+    label: "Gold (XAUT0)",
+    description:
+      "Pay with omnichain Tether Gold — 1 token = 1 troy oz LBMA-accredited gold. Treasury-grade settlement.",
+    settlesIn: "USDC",
+    feeBps: 100,
+  },
   X402_AGENT: {
     id: "X402_AGENT",
     label: "Agent payment (x402)",
@@ -58,6 +81,12 @@ export const RAIL_STATUS: Record<RailId, "shipped" | "architectural"> = {
   DODO_CARD: "shipped",
   DODO_UPI: "shipped",
   SOLANA_USDC: "shipped",
+  SOLANA_USDT: "shipped",
+  // USDT0 + XAUT0 are shipped in mock mode — live LayerZero integration
+  // flips on once we have the Transfer API key. Both are still labelled
+  // "shipped" because the customer-facing flow renders end-to-end.
+  SOLANA_USDT0: "shipped",
+  SOLANA_XAUT0: "shipped",
   IKA_BTC: "architectural",
   IKA_ETH: "architectural",
   X402_AGENT: "shipped",

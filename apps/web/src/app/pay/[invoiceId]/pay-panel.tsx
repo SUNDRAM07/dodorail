@@ -226,7 +226,13 @@ export function PayPanel({
                   ? "INR_UPI"
                   : selected === "DODO_CARD"
                     ? "USD_CARD"
-                    : "USDC",
+                    : selected === "SOLANA_USDT"
+                      ? "USDT"
+                      : selected === "SOLANA_USDT0"
+                        ? "USDT0"
+                        : selected === "SOLANA_XAUT0"
+                          ? "XAUT0"
+                          : "USDC",
               amountCents,
               mock: true,
             },
@@ -445,7 +451,7 @@ export function PayPanel({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col items-center gap-3">
-              <div className="rounded-lg border border-line bg-ink/40 p-3">
+              <div className="rounded-lg border border-line bg-ink/40 p-2 sm:p-3">
                 {qrDataUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -453,10 +459,10 @@ export function PayPanel({
                     alt="Solana Pay QR"
                     width={240}
                     height={240}
-                    className="block"
+                    className="block size-[200px] sm:size-[240px]"
                   />
                 ) : (
-                  <div className="flex size-[240px] items-center justify-center text-muted-foreground">
+                  <div className="flex size-[200px] items-center justify-center text-muted-foreground sm:size-[240px]">
                     <Loader2 className="animate-spin" />
                   </div>
                 )}
@@ -510,23 +516,72 @@ export function PayPanel({
         </Card>
       )}
 
-      {/* Non-Solana rails stay on the Day 2 mock simulate pattern. */}
-      {selected !== "SOLANA_USDC" && (
+      {/* Tether rails — context cards above the simulate-payment button. */}
+      {selected === "SOLANA_USDT" && (
         <Card className="border-burnt/40 bg-burnt/5">
-          <CardContent className="space-y-3 p-4 text-sm">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-burnt" />
-              <p className="font-mono text-[10px] uppercase tracking-widest text-burnt">
-                Day 3 · test-mode demo
-              </p>
-            </div>
-            <p className="text-muted-foreground">
-              Real Dodo-hosted checkout lands Day 4 once per-merchant Product provisioning is
-              live. Click below to fire a mock webhook and simulate settlement end-to-end.
+          <CardContent className="space-y-2 p-4 text-sm">
+            <p className="text-sm font-medium">Pay with native USDT on Solana</p>
+            <p className="text-xs text-muted-foreground">
+              Tether USD, ~$2.4B circulating supply on Solana. Same SPL transfer flow as USDC.
+            </p>
+            <p className="font-mono text-[10px] text-muted-foreground break-all">
+              mint: Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB
             </p>
           </CardContent>
         </Card>
       )}
+
+      {selected === "SOLANA_USDT0" && (
+        <Usdt0BridgeCard invoiceId={invoiceId} amountCents={amountCents} />
+      )}
+
+      {selected === "SOLANA_XAUT0" && (
+        <Card className="border-burnt/40 bg-burnt/5">
+          <CardContent className="space-y-2 p-4 text-sm">
+            <p className="text-sm font-medium">Pay with omnichain Tether Gold (XAUT0)</p>
+            <p className="text-xs text-muted-foreground">
+              1 XAUT0 = 1 troy oz LBMA-accredited gold, redeemable through Tether. Treasury-grade
+              settlement option for merchants who want gold-backed reserves.
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-md border border-line bg-background/60 p-2">
+                <p className="font-mono text-[9px] uppercase text-muted-foreground">XAU/USD</p>
+                <p className="mt-1 font-medium">~$2,400 / oz</p>
+              </div>
+              <div className="rounded-md border border-line bg-background/60 p-2">
+                <p className="font-mono text-[9px] uppercase text-muted-foreground">
+                  ${(amountCents / 100).toFixed(2)} ≈
+                </p>
+                <p className="mt-1 font-medium">{(amountCents / 100 / 2400).toFixed(6)} XAUT0</p>
+              </div>
+            </div>
+            <p className="font-mono text-[10px] text-muted-foreground break-all">
+              mint: ESrLDcuX3oHRz1w2MbJZeeDKxZpTccrJyacsZMRTHuuo
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Generic mock-simulate notice for the remaining non-USDC rails
+          (DODO_CARD/UPI handled separately via the Pay-with-Dodo button below). */}
+      {selected !== "SOLANA_USDC" &&
+        selected !== "SOLANA_USDT" &&
+        selected !== "SOLANA_USDT0" &&
+        selected !== "SOLANA_XAUT0" && (
+          <Card className="border-burnt/40 bg-burnt/5">
+            <CardContent className="space-y-3 p-4 text-sm">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="size-4 text-burnt" />
+                <p className="font-mono text-[10px] uppercase tracking-widest text-burnt">
+                  test-mode demo
+                </p>
+              </div>
+              <p className="text-muted-foreground">
+                Click below to fire a mock webhook and simulate settlement end-to-end.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
       {state === "done" || latestStatus?.status === "PAID" ? (
         <Card className="border-emerald-500/40">
@@ -600,5 +655,159 @@ function CloakStateRow({
         {label}
       </span>
     </div>
+  );
+}
+
+const USDT0_SOURCE_CHAINS_DISPLAY = [
+  { id: "ethereum", label: "Ethereum" },
+  { id: "tron", label: "Tron" },
+  { id: "bnb", label: "BNB Chain" },
+  { id: "polygon", label: "Polygon" },
+  { id: "arbitrum", label: "Arbitrum" },
+  { id: "base", label: "Base" },
+  { id: "optimism", label: "Optimism" },
+  { id: "avalanche", label: "Avalanche" },
+] as const;
+
+interface Usdt0Quote {
+  estimatedFeeUsdCents: number;
+  estimatedSeconds: number;
+  source: "transfer-api" | "mock";
+  mode: "live" | "mock";
+}
+
+/**
+ * Customer flow when paying USDT cross-chain via USDT0:
+ *   1. Pick source chain (where their USDT lives — Ethereum / Tron / BNB / etc)
+ *   2. Paste their source-chain wallet address
+ *   3. Server calls LayerZero Transfer API → returns quote (fee + tx data)
+ *   4. Customer signs source-chain tx → bridge fires → Solana mint
+ *
+ * For Day 9 we ship steps 1-3 against mock-mode (LayerZero Transfer API key
+ * pending). Step 4 wires up on Day 17 once the key arrives.
+ */
+function Usdt0BridgeCard({
+  invoiceId,
+  amountCents,
+}: {
+  invoiceId: string;
+  amountCents: number;
+}) {
+  const [srcChain, setSrcChain] = useState<string>("ethereum");
+  const [fromAddress, setFromAddress] = useState<string>("");
+  const [quote, setQuote] = useState<Usdt0Quote | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function getQuote() {
+    setBusy(true);
+    setErr(null);
+    setQuote(null);
+    try {
+      const res = await fetch("/api/usdt0/quote", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ invoiceId, srcChain, fromAddress }),
+      });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        throw new Error(detail.error ?? `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      setQuote({
+        estimatedFeeUsdCents: json.estimatedFeeUsdCents,
+        estimatedSeconds: json.estimatedSeconds,
+        source: json.source,
+        mode: json.mode,
+      });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "quote failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="border-burnt/40 bg-burnt/5">
+      <CardContent className="space-y-3 p-4 text-sm">
+        <p className="text-sm font-medium">Pay with USDT from any chain (USDT0)</p>
+        <p className="text-xs text-muted-foreground">
+          LayerZero OFT bridges your USDT from Ethereum / Tron / BNB / Polygon / Arbitrum / Base
+          / Optimism / Avalanche. Settles as native USDT0 on Solana.
+        </p>
+
+        <label className="block">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            source chain
+          </span>
+          <select
+            value={srcChain}
+            onChange={(e) => setSrcChain(e.target.value)}
+            className="mt-1 w-full rounded-md border border-line bg-background/60 px-3 py-2 text-sm focus:border-burnt focus:outline-none"
+          >
+            {USDT0_SOURCE_CHAINS_DISPLAY.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            your {srcChain} wallet
+          </span>
+          <input
+            type="text"
+            value={fromAddress}
+            onChange={(e) => setFromAddress(e.target.value)}
+            placeholder={
+              srcChain === "tron"
+                ? "Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                : "0xabc..."
+            }
+            className="mt-1 w-full rounded-md border border-line bg-background/60 px-3 py-2 font-mono text-xs focus:border-burnt focus:outline-none"
+          />
+        </label>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={getQuote}
+          disabled={busy || fromAddress.length < 20}
+          className="w-full"
+        >
+          {busy ? <><Loader2 className="size-3.5 animate-spin" /> Quoting…</> : "Get quote"}
+        </Button>
+
+        {err && (
+          <p className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+            {err}
+          </p>
+        )}
+
+        {quote && (
+          <div className="rounded-md border border-line bg-background/60 p-3 text-xs">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <p className="font-mono text-[9px] uppercase text-muted-foreground">amount</p>
+                <p className="mt-0.5 font-medium">${(amountCents / 100).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[9px] uppercase text-muted-foreground">bridge fee</p>
+                <p className="mt-0.5 font-medium">${(quote.estimatedFeeUsdCents / 100).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[9px] uppercase text-muted-foreground">eta</p>
+                <p className="mt-0.5 font-medium">~{quote.estimatedSeconds}s</p>
+              </div>
+            </div>
+            <p className="mt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+              quote source · {quote.source} · mode · {quote.mode}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

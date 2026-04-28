@@ -14,6 +14,9 @@ type RailOption = { id: string; label: string; feeBps: number; recommended?: boo
 
 const RAILS: readonly RailOption[] = [
   { id: "SOLANA_USDC", label: "USDC on Solana", feeBps: 50, recommended: true },
+  { id: "SOLANA_USDT", label: "USDT on Solana", feeBps: 50 },
+  { id: "SOLANA_USDT0", label: "USDT cross-chain (USDT0)", feeBps: 75 },
+  { id: "SOLANA_XAUT0", label: "Gold (XAUT0)", feeBps: 100 },
   { id: "DODO_CARD", label: "Card via Dodo", feeBps: 450 },
   { id: "DODO_UPI", label: "UPI (Indian customers)", feeBps: 250 },
   { id: "X402_AGENT", label: "Agent payment (x402)", feeBps: 10 },

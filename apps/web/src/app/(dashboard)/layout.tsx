@@ -16,16 +16,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-line/60 bg-background/80 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="wordmark text-xl font-semibold">
+        <div className="container flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <Link href="/dashboard" className="wordmark text-lg font-semibold sm:text-xl truncate">
               {BRAND.wordmark}
             </Link>
-            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+            <Badge variant="outline" className="hidden font-mono text-[10px] uppercase tracking-wider sm:inline-flex">
               merchant
             </Badge>
           </div>
-          <nav className="flex items-center gap-2 text-sm">
+          <nav className="flex items-center gap-1 text-sm sm:gap-2">
             <Link
               href="/dashboard"
               className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground"

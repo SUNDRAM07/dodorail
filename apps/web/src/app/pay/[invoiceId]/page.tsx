@@ -38,21 +38,23 @@ export default async function PayPage({ params }: PageProps) {
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_hsl(22_78%_57%_/_0.08),_transparent_50%)]"
       />
       <header className="border-b border-line/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="wordmark text-xl font-semibold">{BRAND.wordmark}</span>
-            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+        <div className="container flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="wordmark text-lg font-semibold sm:text-xl truncate">
+              {BRAND.wordmark}
+            </span>
+            <Badge variant="outline" className="font-mono text-[9px] uppercase tracking-wider sm:text-[10px]">
               checkout
             </Badge>
           </div>
-          <p className="font-mono text-xs text-muted-foreground">
+          <p className="hidden font-mono text-xs text-muted-foreground sm:block">
             secured by {BRAND.name} · MIT-licensed
           </p>
         </div>
       </header>
 
-      <section className="flex flex-1 items-start justify-center px-6 py-12">
-        <div className="grid w-full max-w-4xl gap-6 md:grid-cols-[1fr_1.2fr]">
+      <section className="flex flex-1 items-start justify-center px-4 py-6 sm:px-6 sm:py-12">
+        <div className="grid w-full max-w-4xl gap-4 sm:gap-6 md:grid-cols-[1fr_1.2fr]">
           {/* Left: invoice summary */}
           <Card>
             <CardHeader>
@@ -69,7 +71,7 @@ export default async function PayPage({ params }: PageProps) {
                 <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Amount
                 </p>
-                <p className="text-3xl font-semibold">
+                <p className="text-2xl font-semibold sm:text-3xl">
                   ${(invoice.amountUsdCents / 100).toFixed(2)}{" "}
                   <span className="text-sm text-muted-foreground">USD</span>
                 </p>

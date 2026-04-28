@@ -17,7 +17,17 @@ const CreateSchema = z.object({
   customerEmail: z.string().email(),
   customerName: z.string().max(120).optional(),
   acceptedRails: z
-    .array(z.enum(["DODO_CARD", "DODO_UPI", "SOLANA_USDC", "X402_AGENT"]))
+    .array(
+      z.enum([
+        "DODO_CARD",
+        "DODO_UPI",
+        "SOLANA_USDC",
+        "SOLANA_USDT",
+        "SOLANA_USDT0",
+        "SOLANA_XAUT0",
+        "X402_AGENT",
+      ]),
+    )
     .min(1, "Pick at least one rail."),
   privateMode: z.boolean().optional().default(false),
 });
