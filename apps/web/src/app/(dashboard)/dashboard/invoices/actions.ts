@@ -98,7 +98,7 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
   const override = input.privateProviderOverride;
   const resolvedProvider = !input.privateMode
     ? "NONE"
-    : override && override !== ""
+    : override !== ""
       ? override
       : merchantProvider !== "NONE"
         ? merchantProvider
