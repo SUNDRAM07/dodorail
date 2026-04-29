@@ -44,6 +44,9 @@ importers:
       '@dodorail/goldrush':
         specifier: workspace:*
         version: link:../../packages/integrations/goldrush
+      '@dodorail/ika':
+        specifier: workspace:*
+        version: link:../../packages/integrations/ika
       '@dodorail/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

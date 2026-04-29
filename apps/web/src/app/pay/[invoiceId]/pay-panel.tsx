@@ -562,12 +562,25 @@ export function PayPanel({
         </Card>
       )}
 
-      {/* Generic mock-simulate notice for the remaining non-USDC rails
+      {/* Ika bridgeless rails — BTC + ETH via 2PC-MPC dWallets. Architectural-only
+          on pre-alpha; the dWallet receive address is real shape but the signer
+          is mock until Ika ships Alpha 1. */}
+      {(selected === "IKA_BTC" || selected === "IKA_ETH") && (
+        <IkaBridgelessCard
+          invoiceId={invoiceId}
+          chain={selected === "IKA_BTC" ? "bitcoin" : "ethereum"}
+          amountCents={amountCents}
+        />
+      )}
+
+      {/* Generic mock-simulate notice for the remaining rails
           (DODO_CARD/UPI handled separately via the Pay-with-Dodo button below). */}
       {selected !== "SOLANA_USDC" &&
         selected !== "SOLANA_USDT" &&
         selected !== "SOLANA_USDT0" &&
-        selected !== "SOLANA_XAUT0" && (
+        selected !== "SOLANA_XAUT0" &&
+        selected !== "IKA_BTC" &&
+        selected !== "IKA_ETH" && (
           <Card className="border-burnt/40 bg-burnt/5">
             <CardContent className="space-y-3 p-4 text-sm">
               <div className="flex items-center gap-2">
@@ -807,6 +820,117 @@ function Usdt0BridgeCard({
             </p>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Ika bridgeless flow: customer picks BTC or ETH, our backend (server
+ * action — Phase B+) creates a 2PC-MPC dWallet, returns the receive address,
+ * customer sends native BTC/ETH there, the DodoRail Solana program approves
+ * the message and releases USDC to the merchant.
+ *
+ * Today this is architectural-only — Ika's Solana SDK is pre-alpha with a
+ * mock signer. The receive address shape is real (bc1q... / 0x...) so the
+ * UX is identical to the live Alpha-1 flow that flips on later in 2026.
+ */
+function IkaBridgelessCard({
+  invoiceId,
+  chain,
+  amountCents,
+}: {
+  invoiceId: string;
+  chain: "bitcoin" | "ethereum";
+  amountCents: number;
+}) {
+  const [receiveAddress, setReceiveAddress] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Generate a mock dWallet receive address synchronously when this card
+  // mounts. Real Phase-B+ flow would POST to a server action that calls
+  // @dodorail/ika.createDWallet and persists the result.
+  useEffect(() => {
+    if (receiveAddress) return;
+    setBusy(true);
+    const seed = invoiceId.slice(0, 8);
+    const rand = Math.random().toString(36).slice(2, 30);
+    const addr =
+      chain === "bitcoin"
+        ? `bc1qmock${seed}${rand}`
+        : `0xmock${seed}${rand.padEnd(36, "0")}`;
+    // Tiny artificial delay so the UI shows "creating dWallet..." briefly —
+    // matches what real DKG would feel like (~1-2s on Alpha-1).
+    const t = setTimeout(() => {
+      setReceiveAddress(addr);
+      setBusy(false);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [invoiceId, chain, receiveAddress]);
+
+  const chainLabel = chain === "bitcoin" ? "Bitcoin" : "Ethereum";
+  const symbol = chain === "bitcoin" ? "BTC" : "ETH";
+  const usdAmount = amountCents / 100;
+
+  return (
+    <Card className="border-burnt/40 bg-burnt/5">
+      <CardContent className="space-y-3 p-4 text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium">Pay with native {chainLabel} (bridgeless)</p>
+          <span className="rounded-sm border border-line bg-background/60 px-1.5 py-px font-mono text-[9px] uppercase text-muted-foreground">
+            architectural · pre-alpha
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Send native {symbol} from your wallet to the address below. Our Solana
+          program receives co-signing authority over an Ika dWallet via 2PC-MPC
+          threshold signatures — when the {symbol} confirms, USDC releases to
+          the merchant on Solana. No wrapped tokens. No custodian. No bridge.
+        </p>
+
+        {busy && (
+          <div className="flex items-center gap-2 rounded-md border border-line bg-background/60 p-3 font-mono text-xs">
+            <Loader2 className="size-3.5 animate-spin text-burnt" />
+            <span className="text-muted-foreground">
+              Generating dWallet via Ika DKG…
+            </span>
+          </div>
+        )}
+
+        {receiveAddress && (
+          <div className="space-y-2">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              {chainLabel} receive address
+            </p>
+            <div className="rounded-md border border-line bg-background/60 p-3 font-mono text-[11px] break-all">
+              {receiveAddress}
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-md border border-line bg-background/60 p-2">
+                <p className="font-mono text-[9px] uppercase text-muted-foreground">
+                  amount
+                </p>
+                <p className="mt-0.5 font-medium">${usdAmount.toFixed(2)} USD</p>
+              </div>
+              <div className="rounded-md border border-line bg-background/60 p-2">
+                <p className="font-mono text-[9px] uppercase text-muted-foreground">
+                  signature scheme
+                </p>
+                <p className="mt-0.5 font-medium">
+                  {chain === "bitcoin" ? "ECDSA secp256k1" : "ECDSA secp256k1"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <p className="text-[10px] text-muted-foreground">
+          Powered by{" "}
+          <span className="font-mono">@ika.xyz/sdk</span> · 2PC-MPC threshold
+          signatures · MIT-licensed wrapper at{" "}
+          <span className="font-mono">packages/integrations/ika/</span>. Ika
+          ships Alpha 1 with real distributed signers later in 2026.
+        </p>
       </CardContent>
     </Card>
   );

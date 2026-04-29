@@ -93,15 +93,46 @@ export const RAIL_STATUS: Record<RailId, "shipped" | "architectural"> = {
 };
 
 /**
- * USDC SPL mint addresses on Solana. The devnet one is Circle's official
- * faucet-backed test mint, mainnet is the real thing.
+ * USDC SPL mint addresses on Solana.
+ *
+ * Mainnet is Circle's canonical USDC mint — every wallet, every DEX, every
+ * indexer recognises it.
+ *
+ * Devnet is more nuanced: there are TWO mints in active use depending on
+ * which faucet a customer pulled from.
+ *   - Circle's "official" devnet mint (`4zMMC9...`) is what their docs +
+ *     `solana airdrop` infra hand out
+ *   - The Credix-operated `spl-token-faucet.com?token-name=USDC-Dev` faucet
+ *     mints a DIFFERENT USDC at `Gh9ZwEm...` — same UI label, different mint
+ *
+ * Day 9 hit this exact mismatch: Sundaram funded his devnet wallet from the
+ * Credix faucet (10,000 USDC-Dev at `Gh9ZwEm...`), but our Solana Pay URL
+ * builder requested transfer of the Circle mint, so Phantom rejected the
+ * QR. Fix: accept BOTH on the receive side, prefer the Credix mint for
+ * pay-page QR generation since it's the one builders actually have.
  */
 export const USDC_MINTS = {
   mainnet: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-  devnet: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  /** Primary devnet mint we use for Solana Pay QRs — matches the
+   * spl-token-faucet.com?token-name=USDC-Dev mint that hackathon builders
+   * actually fund their wallets from. */
+  devnet: "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr",
+  /** Circle's official devnet mint, kept for cross-checks + future
+   * Solana-CLI airdrops. Receive-side handlers should accept both. */
+  devnet_circle: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
 } as const;
 
 export function usdcMintForCluster(cluster: "mainnet-beta" | "devnet" | string): string {
   if (cluster === "mainnet-beta" || cluster === "mainnet") return USDC_MINTS.mainnet;
   return USDC_MINTS.devnet;
+}
+
+/** Returns ALL mints we accept as USDC on a given cluster. The receiving
+ * (merchant) side uses this — a customer paying from either devnet faucet
+ * lands successfully. */
+export function usdcMintsForCluster(
+  cluster: "mainnet-beta" | "devnet" | string,
+): readonly string[] {
+  if (cluster === "mainnet-beta" || cluster === "mainnet") return [USDC_MINTS.mainnet];
+  return [USDC_MINTS.devnet, USDC_MINTS.devnet_circle];
 }

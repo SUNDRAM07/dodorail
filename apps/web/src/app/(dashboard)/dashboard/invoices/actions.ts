@@ -30,6 +30,13 @@ const CreateSchema = z.object({
     )
     .min(1, "Pick at least one rail."),
   privateMode: z.boolean().optional().default(false),
+  /** Per-invoice override of the merchant's default privacy provider.
+   * Empty string = use merchant default. NONE = explicitly disable privacy
+   * even if merchant default is set (rare but allowed). */
+  privateProviderOverride: z
+    .enum(["", "CLOAK", "UMBRA", "MAGICBLOCK", "NONE"])
+    .optional()
+    .default(""),
 });
 
 export type CreateInvoiceInput = z.infer<typeof CreateSchema>;
@@ -47,6 +54,7 @@ function normalise(raw: FormData): unknown {
     customerName: (raw.get("customerName") ?? "").toString() || undefined,
     acceptedRails: rails,
     privateMode: raw.get("privateMode") === "on",
+    privateProviderOverride: String(raw.get("privateProviderOverride") ?? ""),
   };
 }
 
@@ -82,11 +90,19 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
     select: { privateProvider: true },
   });
   const merchantProvider = merchantRow?.privateProvider ?? "NONE";
-  const resolvedProvider = input.privateMode
-    ? merchantProvider !== "NONE"
-      ? merchantProvider
-      : "CLOAK"
-    : "NONE";
+  // Resolution priority for invoice.privateProvider:
+  //   1. If privateMode is OFF → always NONE
+  //   2. Else if a non-empty override was explicitly chosen → use it
+  //   3. Else if merchant has a default !== NONE → use merchant default
+  //   4. Else fall back to CLOAK (track-narrative-match default)
+  const override = input.privateProviderOverride;
+  const resolvedProvider = !input.privateMode
+    ? "NONE"
+    : override && override !== ""
+      ? override
+      : merchantProvider !== "NONE"
+        ? merchantProvider
+        : "CLOAK";
 
   const invoice = await prisma.invoice.create({
     data: {

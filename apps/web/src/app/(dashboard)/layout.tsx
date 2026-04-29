@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Wallet, LogOut, Plus, LayoutDashboard, FileText, ShieldCheck } from "lucide-react";
+import { Plus, LayoutDashboard, FileText, ShieldCheck } from "lucide-react";
 
 import { getSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BRAND } from "@dodorail/sdk";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { WalletPill } from "@/components/wallet-pill";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
@@ -49,12 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <Plus /> New invoice
               </Link>
             </Button>
-            <div className="ml-3 hidden sm:flex items-center gap-2 rounded-md border border-line px-2 py-1 font-mono text-xs">
-              <Wallet className="size-3 text-burnt" />
-              <span className="text-muted-foreground truncate max-w-[12ch]">
-                {merchant.solanaWalletAddress.slice(0, 4)}…{merchant.solanaWalletAddress.slice(-4)}
-              </span>
-            </div>
+            <WalletPill address={merchant.solanaWalletAddress} />
             <SignOutButton />
           </nav>
         </div>

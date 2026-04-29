@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+import { prisma } from "@dodorail/db";
+import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InvoiceForm } from "./invoice-form";
 
@@ -8,7 +11,17 @@ export const metadata = {
   title: "New invoice",
 };
 
-export default function NewInvoicePage() {
+export default async function NewInvoicePage() {
+  const s = await getSession();
+  if (!s) redirect("/sign-in");
+
+  // Pull merchant's privacy defaults so the invoice form can pre-fill the
+  // per-invoice override picker correctly.
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: s.merchant.id },
+    select: { privateProvider: true, privateModeDefault: true },
+  });
+
   return (
     <div className="container max-w-2xl py-10">
       <Link
@@ -26,7 +39,10 @@ export default function NewInvoicePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <InvoiceForm />
+          <InvoiceForm
+            merchantDefaultProvider={merchant?.privateProvider ?? "NONE"}
+            merchantPrivateModeDefault={merchant?.privateModeDefault ?? false}
+          />
         </CardContent>
       </Card>
     </div>

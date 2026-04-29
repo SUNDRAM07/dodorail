@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { prisma } from "@dodorail/db";
-import { usdcMintForCluster } from "@dodorail/sdk";
+import { usdcMintsForCluster } from "@dodorail/sdk";
 import { extractReference } from "@/lib/solana-pay";
 import { track } from "@/lib/analytics";
 
@@ -100,12 +100,13 @@ export async function POST(req: Request) {
   }
   const txs = parsed.data;
 
-  // 3. Figure out which USDC mint to accept. Test our RPC URL first, fall
-  // back to devnet — we intentionally never accept mainnet USDC on a devnet
-  // deploy.
+  // 3. Figure out which USDC mint(s) to accept. Devnet has TWO USDC mints
+  // in active use — Circle's official one and the spl-token-faucet.com
+  // one — so we accept both on devnet. Mainnet only ever has Circle's mint.
+  // We never accept mainnet USDC on a devnet deploy.
   const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? "";
   const cluster = rpcUrl.includes("mainnet") ? "mainnet-beta" : "devnet";
-  const expectedMint = usdcMintForCluster(cluster);
+  const acceptedMints = new Set(usdcMintsForCluster(cluster));
 
   const results: Array<{
     signature: string;
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
     // Skip failed txs — Helius still delivers them but we shouldn't settle.
     if (tx.transactionError) continue;
 
-    const usdcTransfers = tx.tokenTransfers.filter((t) => t.mint === expectedMint);
+    const usdcTransfers = tx.tokenTransfers.filter((t) => acceptedMints.has(t.mint));
     if (usdcTransfers.length === 0) {
       results.push({ signature: tx.signature, status: "not_usdc" });
       continue;
