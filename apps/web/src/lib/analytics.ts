@@ -44,7 +44,10 @@ export type AnalyticsEvent =
   | "webhook_received"
   | "webhook_rejected"
   | "compliance_export_generated"
-  | "cloak_viewing_key_registered";
+  | "cloak_viewing_key_registered"
+  // Day 11 — Treasury Vault / LP Agent yield lifecycle.
+  | "yield_zap_in"
+  | "yield_zap_out";
 
 export function track(
   event: AnalyticsEvent,
