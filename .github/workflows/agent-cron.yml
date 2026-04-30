@@ -35,7 +35,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Node 22 — silences the "Unsupported engine: wanted >=22" warn from
+          # transitive deps + future-proofs against GitHub-Actions' Node 20
+          # deprecation (Sep 2026).
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install workspace deps

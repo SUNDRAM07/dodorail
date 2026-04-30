@@ -4,7 +4,6 @@
   "private": true,
   "description": "DodoRail Treasury Agent — autonomous Node.js daemon. Watches merchant wallets via Zerion CLI, reasons over portfolio state with an LLM, and acts (Telegram alerts + LP Agent zap-ins). Submitted for the Zerion CLI Autonomous Agent track.",
   "license": "MIT",
-  "type": "module",
   "main": "./src/index.ts",
   "bin": {
     "dodorail-agent": "./src/index.ts"
