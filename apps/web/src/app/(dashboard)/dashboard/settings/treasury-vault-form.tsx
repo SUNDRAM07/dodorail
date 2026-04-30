@@ -135,9 +135,11 @@ export function TreasuryVaultForm({
             powered by LP Agent · Meteora DLMM · zap-in / zap-out via API
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Every 15 min, we check your settlement wallet&apos;s idle USDC. Anything above
-            your threshold gets deployed into your selected Meteora DLMM pool. Fees +
-            position value live-update on the dashboard. One-click zap-out any time.
+            On a scheduled cron sweep, we check your settlement wallet&apos;s idle USDC.
+            Anything above your threshold gets deployed into your selected Meteora DLMM
+            pool. Fees + position value live-update on the dashboard. One-click zap-out
+            any time. Use &quot;Deploy now&quot; below to skip the cron and zap in
+            immediately.
           </p>
         </div>
       </label>
