@@ -86,7 +86,7 @@ export async function GET(req: Request): Promise<Response> {
       where: {
         merchantId: m.id,
         type: "YIELD_ZAP_IN",
-        createdAt: { gte: dedupeCutoff },
+        occurredAt: { gte: dedupeCutoff },
       },
       select: { id: true },
     });
