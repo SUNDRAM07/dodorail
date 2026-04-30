@@ -47,6 +47,9 @@ importers:
       '@dodorail/ika':
         specifier: workspace:*
         version: link:../../packages/integrations/ika
+      '@dodorail/lpagent':
+        specifier: workspace:*
+        version: link:../../packages/integrations/lpagent
       '@dodorail/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

@@ -3,11 +3,13 @@ import { ArrowRight, Plus, TrendingUp, Receipt, Users } from "lucide-react";
 
 import { prisma } from "@dodorail/db";
 import { getSession } from "@/lib/auth";
+import { getMerchantTreasuryView, getLpAgentClient } from "@/lib/treasury-service";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DuneVolumeTile } from "@/components/dune-volume-tile";
+import { TreasuryVaultCard } from "@/components/treasury-vault-card";
 
 export default async function DashboardHome() {
   const s = await getSession();
@@ -34,6 +36,11 @@ export default async function DashboardHome() {
     orderBy: { createdAt: "desc" },
     take: 5,
   });
+
+  // Treasury Vault state — same orchestration helper as /dashboard/settings
+  // so the dashboard card and settings page agree on the math.
+  const treasury = await getMerchantTreasuryView({ merchantId: merchant.id });
+  const lpClient = getLpAgentClient();
 
   return (
     <div className="container py-10">
@@ -97,6 +104,17 @@ export default async function DashboardHome() {
       {/* Ecosystem tiles row 2 — public Solana data, not merchant-specific. */}
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <DuneVolumeTile />
+      </div>
+
+      {/* Treasury Vault — LP Agent / Meteora DLMM auto-yield surface */}
+      <div className="mt-4">
+        <TreasuryVaultCard
+          yieldEnabled={treasury.yieldEnabled}
+          selectedPoolId={treasury.selectedPoolId}
+          metrics={treasury.metrics}
+          positions={treasury.positions}
+          wrapperMode={lpClient.mode}
+        />
       </div>
 
       <Separator className="my-10" />

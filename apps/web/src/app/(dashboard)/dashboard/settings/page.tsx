@@ -1,15 +1,17 @@
-import { ShieldCheck, FileDown, Eye } from "lucide-react";
+import { ShieldCheck, FileDown, Eye, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { prisma } from "@dodorail/db";
+import { CURATED_POOLS } from "@dodorail/lpagent";
 import { getSession } from "@/lib/auth";
+import { getMerchantTreasuryView } from "@/lib/treasury-service";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 import { CloakComplianceExportButton } from "./cloak-export-button";
 import { PrivacyProviderForm } from "./privacy-provider-form";
+import { TreasuryVaultForm } from "./treasury-vault-form";
 
 export default async function SettingsPage() {
   const s = await getSession();
@@ -26,12 +28,37 @@ export default async function SettingsPage() {
       privateModeDefault: true,
       cloakViewingKey: true,
       cloakViewingKeyRegisteredAt: true,
+      yieldEnabled: true,
+      yieldThresholdCents: true,
     },
   });
   if (!merchant) return null;
 
   const cloakRegistered = !!merchant.cloakViewingKey;
   const provider = merchant.privateProvider;
+
+  // Treasury Vault state — selected pool + currently-deployable amount come
+  // from the orchestration helper so the cron and UI agree on the math.
+  const treasury = await getMerchantTreasuryView({ merchantId: merchant.id });
+  const deployableNowCents =
+    treasury.decision.action === "deploy" ? treasury.decision.amountUsdcCents : 0;
+  // Type-narrow the curated pool id we hand to the form.
+  const fallbackPoolId = CURATED_POOLS[0]!.id;
+  const treasurySelectedPoolId = (
+    [
+      "usdc-sol-meteora-dlmm",
+      "usdc-usdt-meteora-dlmm",
+      "usdc-bsol-meteora-dlmm",
+    ] as const
+  ).includes(treasury.selectedPoolId as never)
+    ? (treasury.selectedPoolId as
+        | "usdc-sol-meteora-dlmm"
+        | "usdc-usdt-meteora-dlmm"
+        | "usdc-bsol-meteora-dlmm")
+    : (fallbackPoolId as
+        | "usdc-sol-meteora-dlmm"
+        | "usdc-usdt-meteora-dlmm"
+        | "usdc-bsol-meteora-dlmm");
 
   return (
     <div className="container py-10">
@@ -88,6 +115,37 @@ export default async function SettingsPage() {
               </Badge>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Treasury Vault — LP Agent / Meteora DLMM auto-yield */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="size-4 text-burnt" /> Treasury Vault
+            <span className="ml-1 rounded-sm border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-px font-mono text-[9px] uppercase text-emerald-400">
+              live
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Idle USDC sitting in your settlement wallet earns nothing by default. Turn on
+            Treasury Vault and DodoRail auto-deploys the excess above your threshold into
+            a curated Meteora DLMM pool via LP Agent. Withdraw any time.
+          </p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            powered by @dodorail/lpagent · Meteora DLMM · 9-endpoint integration
+          </p>
+
+          <Separator />
+
+          <TreasuryVaultForm
+            initialYieldEnabled={merchant.yieldEnabled}
+            initialThresholdCents={merchant.yieldThresholdCents}
+            initialSelectedPoolId={treasurySelectedPoolId}
+            deployableNowCents={deployableNowCents}
+          />
         </CardContent>
       </Card>
 
