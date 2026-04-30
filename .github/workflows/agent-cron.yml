@@ -1,0 +1,57 @@
+name: Treasury Agent — scheduled run
+
+# Runs the DodoRail Treasury Agent every 5 minutes via GitHub-Actions cron.
+# Free on public repos. ~1,440 min/month on private (well under the 2,000-min
+# Hobby cap). The agent is workspace-isolated — no Vercel rebuild triggers,
+# no production traffic impact.
+#
+# Manual: trigger from the Actions tab via "Run workflow" — useful for the
+# demo recording.
+
+on:
+  schedule:
+    # GitHub-Actions schedules use UTC. */5 = every 5 minutes.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  # If a tick overruns, queue (don't kill) the next one. Idempotency at the
+  # action layer handles double-fire safely.
+  group: treasury-agent
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Generate Prisma client
+        run: pnpm --filter @dodorail/db run db:generate
+
+      - name: Run agent tick
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DODORAIL_ZERION_KEY: ${{ secrets.DODORAIL_ZERION_KEY }}
+          DODORAIL_GEMINI_KEY: ${{ secrets.DODORAIL_GEMINI_KEY }}
+          DODORAIL_ANTHROPIC_KEY: ${{ secrets.DODORAIL_ANTHROPIC_KEY }}
+          DODORAIL_TELEGRAM_BOT_TOKEN: ${{ secrets.DODORAIL_TELEGRAM_BOT_TOKEN }}
+          DODORAIL_LPAGENT_KEY: ${{ secrets.DODORAIL_LPAGENT_KEY }}
+          DODORAIL_AGENT_REASONER: ${{ vars.DODORAIL_AGENT_REASONER || 'mock' }}
+          DODORAIL_AGENT_LIVE_TX: ${{ vars.DODORAIL_AGENT_LIVE_TX || 'false' }}
+        run: pnpm --filter @dodorail/agent run once

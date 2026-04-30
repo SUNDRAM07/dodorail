@@ -1,0 +1,30 @@
+{
+  "name": "@dodorail/agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DodoRail Treasury Agent — autonomous Node.js daemon. Watches merchant wallets via Zerion CLI, reasons over portfolio state with an LLM, and acts (Telegram alerts + LP Agent zap-ins). Submitted for the Zerion CLI Autonomous Agent track.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "dodorail-agent": "./src/index.ts"
+  },
+  "scripts": {
+    "once": "tsx src/index.ts --once",
+    "daemon": "tsx src/index.ts --daemon",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@dodorail/db": "workspace:*",
+    "@dodorail/sdk": "workspace:*",
+    "@dodorail/lpagent": "workspace:*",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}
