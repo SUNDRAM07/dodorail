@@ -95,7 +95,7 @@ async function tryMatchInvoice(
   const candidates = await prisma.invoice.findMany({
     where: {
       merchantId,
-      amountUsdCents,
+      amountUsdCents: amountUsdcCents,
       status: { in: ["OPEN", "PAID"] },
       createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     },

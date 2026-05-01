@@ -38,6 +38,9 @@ importers:
       '@dodorail/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@dodorail/x402':
+        specifier: workspace:*
+        version: link:../../packages/integrations/x402
       node-cron:
         specifier: ^3.0.3
         version: 3.0.3

@@ -19,6 +19,7 @@
     "@dodorail/sdk": "workspace:*",
     "@dodorail/lpagent": "workspace:*",
     "@dodorail/goldrush": "workspace:*",
+    "@dodorail/x402": "workspace:*",
     "node-cron": "^3.0.3"
   },
   "devDependencies": {
