@@ -7,10 +7,11 @@
 Stripe + Wise for Indian SaaS, AI, and digital-product founders who sell globally — with a Solana rail ready for when your customers or their agents want it.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-E97F3B.svg)](./LICENSE)
-[![Built for Solana Frontier](https://img.shields.io/badge/Solana-Frontier%20Hackathon-1A1A1A.svg)](https://arena.colosseum.org/)
-[![Status: Day 1 of 22](https://img.shields.io/badge/Day-1%20of%2022-E97F3B.svg)](#timeline)
+[![Built for Solana Frontier](https://img.shields.io/badge/Solana-Frontier%20Hackathon-1A1A1A.svg)](https://colosseum.com/frontier)
+[![Status: Day 16 of 22](https://img.shields.io/badge/Day-16%20of%2022-E97F3B.svg)](#timeline)
+[![Treasury Agent: live](https://img.shields.io/badge/Treasury_Agent-live_on_GitHub_Actions-22c55e.svg)](https://github.com/SUNDRAM07/dodorail/actions/workflows/agent-cron.yml)
 
-**[Live app](#) · [Docs](#) · [X](https://x.com/dodorail) · [Telegram](https://t.me/dodorail_io)**
+**[Live app](https://dodorail.vercel.app) · [Treasury Agent](./apps/agent) · [X](https://x.com/dodorail) · [Telegram](https://t.me/dodorail_io)**
 
 </div>
 
@@ -62,24 +63,31 @@ dodorail-agent/                      (separate repo — Day 13-14)
                                      Keyless, self-funded treasury agent for every merchant
 ```
 
-### Integration status
+### Integration status (as of Day 16)
 
 | Integration | Status | Notes |
 |---|---|---|
-| Dodo Payments | Placeholder — Day 1 scaffold | Factory + mock mode shipped. Live mode Day 4-5. |
-| Solana Pay / USDC | Day 4-5 | `@solana/pay` + Wallet Adapter |
-| Better-Auth + Solana wallet | Day 4 | Dodo's Better-Auth adapter |
-| Dune | Day 7-10 | Historical charts + public dashboard |
-| GoldRush (Covalent) | Day 7-10 | Live balance tiles + activity feed |
-| SNS | Day 7-8 | Per-merchant subdomains |
-| Umbra | Day 11-12 | Primary private-mode provider |
-| MagicBlock Private Payments | Day 10 conditional | Ship if API key approved by Day 10 |
-| LP Agent | Day 11-12 | Powers idle-treasury yield |
-| Ika | Architectural only | Pre-alpha — mock signer, UI + essay |
-| x402 (inbound + outbound) | Day 13-14 | Merchant API returns 402; agent pays Zerion via x402 |
-| Anchor program | ✅ Day 4 devnet live, Day 10 mainnet | 2 instructions, Squads multisig upgrade authority |
+| Dodo Payments | ✅ live | Real per-invoice Product + Checkout Session via Dodo REST API; webhook signature-verified |
+| Solana Pay / USDC | ✅ live | `@solana/pay` URL builder, Helius webhook fast-confirm, polling fallback |
+| Custom HMAC session cookies | ✅ live | Better-Auth deferred permanently — Web Crypto HMAC + wallet sign-in works cleaner |
+| Dune Analytics | ✅ live | Real Solana volume query + dashboard tile + public dashboard |
+| GoldRush (Covalent) | ✅ live | BalanceService + TransactionService, multi-chain ready |
+| SNS | ✅ live | Async enrichment, per-merchant subdomain resolution |
+| Umbra | ✅ verified live on devnet | `depositPublicToEncrypted` round-trip with finalized tx sig (Day 14, post-faucet) |
+| Cloak | ✅ wired live, mainnet-only | Browser-native Groth16 proofs + viewing-keys + compliance CSV |
+| MagicBlock Private Payments | 🟡 architectural-only | Conditional — flips if API key arrives. Privacy-track synthesis essay submitted. |
+| LP Agent | ✅ live | 9 endpoints integrated, Treasury Vault dashboard surface, daily Vercel cron |
+| Ika | 🟡 architectural-only | Pre-alpha SDK with mock signer per Ika docs; flips live on Alpha 1 |
+| x402 (inbound + outbound) | 🟡 placeholder | Day 18+ polish — wrapper scaffold present, full HTTP 402 flow deferred |
+| Tether (USDT / USDT0 / XAUT0) | ✅ wired | LayerZero Transfer API mock-mode, mainnet-active for native USDT |
+| LayerZero | 🟡 mock-mode | OFT Transfer API key request submitted but no approval; USDT0 stays mock |
+| Zerion (Treasury Agent) | ✅ live in agent | Real `wallet/portfolio` HTTP API path, key in Vercel env |
+| Squads delegated signer | ✅ scaffold shipped | Mock-mode-safe; live multisig flow Day 18+ |
+| Anchor program | ✅ Day 4 devnet live, mainnet TBD Day 18 | 2 instructions, devnet program ID below |
 
 **Live devnet program:** [`5jqD3PHpmaR1cHhdz4WNNPbiPmHPjg8rokxcZGCPhwqt`](https://explorer.solana.com/address/5jqD3PHpmaR1cHhdz4WNNPbiPmHPjg8rokxcZGCPhwqt?cluster=devnet) · Finalized 2026-04-22.
+
+**Treasury Agent live:** [GitHub Actions cron](https://github.com/SUNDRAM07/dodorail/actions/workflows/agent-cron.yml) running every 5 min since Day 13. ~16 successful runs as of Day 16.
 
 ### Integration isolation rule
 
@@ -132,40 +140,42 @@ All integration packages default to **mock mode** — you can build against them
 
 ---
 
-## Submission tracks (11 side tracks)
+## Submission tracks (13 side tracks targeted, ~$94k pool + $20k Eitherway upside)
 
 DodoRail (this monorepo) is submitted to:
 
-- **Dodo Payments Merchant Hackathon** ($10k)
-- **100xDevs** ($10k)
+- **Dodo Payments Merchant Hackathon** ($10k pool · 5/3/2)
+- **100xDevs** ($10k · 10 places)
 - **Dune Analytics** ($6k)
-- **GoldRush / Covalent** ($3k)
-- **Privacy × MagicBlock** ($5k)
-- **Umbra Side Track** ($10k)
-- **LP Agent API Side Track** ($900)
-- **Encrypt × Ika** ($15k) — architectural submission
+- **GoldRush / Covalent** ($3k) — all 3 of Prajin's architectural patterns shipped
+- **Cloak Privacy Track** ($5k pool, mainnet-only privacy provider)
+- **Privacy × MagicBlock Track Synthesis** ($5k) — three-provider plurality narrative
+- **Umbra Side Track** ($5k) — verified live on devnet with real tx sigs
+- **LP Agent API Side Track** ($900) — 9 endpoints integrated end-to-end
+- **Encrypt × Ika Side Track** ($15k pool) — architectural-only on pre-alpha
+- **Tether Frontier Track** ($10k) — full asset family (USDT + USDT0 + XAUT0)
+- **Zerion CLI Autonomous Agent Track** ($5k) — Treasury Agent at `apps/agent/`
 
-Separate repos submitted to:
+Companion build (separate platform):
 
-- **Zerion CLI Agent Track** — [`dodorail-agent`](https://github.com/SUNDRAM07/dodorail-agent) (Day 13-14)
-- **Eitherway Multi-Sponsor** ($20k) — portal built on Eitherway's platform (Day 15)
+- **Eitherway Build a Live dApp Track** ($20k pool) — companion landing built on `eitherway.ai/chat` (live preview at `https://preview.eitherway.ai/dd256074-…/`, iterations #2-#5 across Days 15-18)
 
 Content submission:
 
-- **Jupiter Not Your Regular Bounty** — jupUSD-themed X thread in Week 3
+- **Jupiter Not Your Regular Bounty** ($3k pool) — jupUSD-themed 5-tweet thread, drafted Day 16
 
 ---
 
 ## Timeline
 
-| Phase | Days | Goal |
-|---|---|---|
-| Foundation | 1-6 (Apr 20 – 25) | Scaffold, auth, Dodo checkout E2E, Anchor skeleton on devnet, first USDC checkout |
-| Core integrations | 7-12 (Apr 26 – May 1) | GoldRush, Dune, SNS, Umbra, LP Agent. Program on mainnet. All 5 critical-path checkpoints green. |
-| Stretch + Agent + Portal | 13-18 (May 2 – 7) | Ika mock-signer demo, MagicBlock conditional, x402, Treasury Agent, Eitherway portal, Jupiter thread. **No new integrations after Day 18.** |
-| Polish + Submit | 19-22 (May 8 – 11) | UI polish, demo video Day 20, all 11 submissions filed by Day 21. |
+| Phase | Days | Status | Goal |
+|---|---|---|---|
+| Foundation | 1-6 | ✅ shipped | Scaffold, auth, Dodo checkout E2E, Anchor skeleton on devnet, first USDC checkout |
+| Core integrations | 7-12 | ✅ shipped | GoldRush, Dune, SNS, Umbra, LP Agent, Tether, Ika. All critical-path checkpoints green. |
+| Stretch + Agent + Portal | 13-18 | 🟡 in progress (Day 16) | Treasury Agent (Day 13) ✓ · GoldRush v2 multi-chain (Day 15) ✓ · Squads delegated signer (Day 16) ✓ · Eitherway iterations (Days 14-18) · Jupiter thread (Day 16) ✓ |
+| Polish + Submit | 19-22 | upcoming | UI polish, demo video, mainnet smoke tests if funded, 13 submissions filed by Day 21. |
 
-Critical path (must all be green by Day 10): Dodo E2E · Solana Pay E2E · Merchant dashboard with real Postgres data · SNS resolution at checkout · Live URL judges can click.
+Critical path (all green since Day 10): Dodo E2E · Solana Pay E2E · Merchant dashboard with real Postgres data · SNS resolution at checkout · Live URL judges can click.
 
 ---
 

@@ -23,7 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/auth";
 
-const DAY_OF = 1;
+const DAY_OF = 16;
 const TOTAL_DAYS = 22;
 
 const VALUE_PROPS = [
@@ -245,7 +245,7 @@ export default async function HomePage() {
               </CardContent>
             </Card>
             <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              mock receipt · live demo Day 10
+              mock receipt · live demo Day {DAY_OF}
             </p>
           </div>
         </div>
@@ -390,7 +390,7 @@ export default async function HomePage() {
                 Day {DAY_OF} of {TOTAL_DAYS}.<br />Shipping every day until May 11.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Submitting to 11 side tracks of the Solana Frontier Hackathon. Every commit is
+                Submitting to 13 side tracks of the Solana Frontier Hackathon. Every commit is
                 public. Every integration is MIT-licensed. Follow along — or fork the code.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -411,14 +411,14 @@ export default async function HomePage() {
               <CardHeader>
                 <CardTitle className="font-mono text-sm">Day-by-day status</CardTitle>
                 <CardDescription>
-                  Critical path (all green by Day 10) + stretch goals Day 11-22.
+                  Foundation + integrations shipped Days 1-12. Agent + Portal landed Day 13-16. Polish week underway.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  { t: "Foundation", d: "Days 1–6", icon: Wallet, status: "in progress" },
-                  { t: "Core integrations", d: "Days 7–12", icon: Globe2, status: "upcoming" },
-                  { t: "Stretch + Agent + Portal", d: "Days 13–18", icon: Bot, status: "upcoming" },
+                  { t: "Foundation", d: "Days 1–6", icon: Wallet, status: "shipped" },
+                  { t: "Core integrations", d: "Days 7–12", icon: Globe2, status: "shipped" },
+                  { t: "Stretch + Agent + Portal", d: "Days 13–18", icon: Bot, status: "in progress" },
                   { t: "Polish + Submit", d: "Days 19–22", icon: Sparkles, status: "upcoming" },
                 ].map(({ t, d, icon: Icon, status }) => (
                   <div key={t} className="flex items-center gap-3">
@@ -432,7 +432,13 @@ export default async function HomePage() {
                       </p>
                     </div>
                     <Badge
-                      variant={status === "in progress" ? "burnt" : "outline"}
+                      variant={
+                        status === "shipped"
+                          ? "shipped"
+                          : status === "in progress"
+                            ? "burnt"
+                            : "outline"
+                      }
                       className="font-mono text-[10px] uppercase"
                     >
                       {status}
@@ -490,7 +496,7 @@ export default async function HomePage() {
                 <ul className="mt-3 space-y-2 text-sm">
                   <li><a href="#rails" className="hover:text-burnt">Rails</a></li>
                   <li><Link href="/api/health" className="hover:text-burnt">Status</Link></li>
-                  <li><span className="text-muted-foreground/60">Docs · coming Day 14</span></li>
+                  <li><a href="https://github.com/SUNDRAM07/dodorail#readme" target="_blank" rel="noreferrer" className="hover:text-burnt">Docs · README</a></li>
                 </ul>
               </div>
               <div>
