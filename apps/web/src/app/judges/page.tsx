@@ -127,7 +127,7 @@ export default function JudgesPage() {
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
         Every artefact below is a verifiable on-chain or live-deployed surface. No screenshots that could be
-        photoshopped. No claims that aren't demonstrable.
+        photoshopped. No claims that aren&apos;t demonstrable.
       </p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
