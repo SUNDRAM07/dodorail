@@ -26,6 +26,7 @@ import { createTelegramNotifier } from "./notifier.js";
 import { executeAlert } from "./actions/alert.js";
 import { executeZapInFromAgent } from "./actions/zap-in.js";
 import { computeBehaviourDeltas } from "./heuristics/deltas.js";
+import { classifyInflows, summariseClassifications } from "./classifiers/inflow.js";
 
 export interface MerchantTickResult {
   merchantId: string;
@@ -96,6 +97,21 @@ export async function runAgentLoop(): Promise<LoopRunResult> {
         walletAnalysis: analysis,
       });
 
+      // Day 16 — inflow categoriser (Prajin's pattern #3). Rule-based
+      // classifier with LLM fallback for `unknown` cases. Result feeds
+      // into the Event payload so the merchant dashboard can filter by
+      // inflow type rather than chain.
+      const classifications = await classifyInflows({
+        merchantId: m.id,
+        walletAnalysis: analysis,
+      });
+      const inflowSummary = summariseClassifications(classifications);
+      if (classifications.length > 0) {
+        console.log(
+          `[agent] ${m.name} inflows: ${classifications.length} total · ${JSON.stringify(inflowSummary)}`,
+        );
+      }
+
       // Pool selection — same logic as the dashboard (most-recent
       // TreasuryPosition row, fallback first curated).
       const lastPosition = await prisma.treasuryPosition.findFirst({
@@ -135,6 +151,7 @@ export async function runAgentLoop(): Promise<LoopRunResult> {
           decision,
           walletAnalysis: analysis,
           notifier,
+          inflowClassifications: classifications,
         });
         results.push({
           merchantId: m.id,

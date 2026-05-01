@@ -11,6 +11,7 @@ import { prisma } from "@dodorail/db";
 import type { TelegramNotifier } from "../notifier.js";
 import type { AgentDecision } from "../reasoner.js";
 import type { WalletAnalysis } from "../adapters/zerion.js";
+import type { ClassifiedInflow } from "../classifiers/inflow.js";
 
 export interface AlertContext {
   merchantId: string;
@@ -19,6 +20,10 @@ export interface AlertContext {
   decision: AgentDecision;
   walletAnalysis: WalletAnalysis;
   notifier: TelegramNotifier;
+  /** Day 16 — Prajin pattern #3. Classified categories per recent
+   * inbound transfer. Stored on the Event payload so the dashboard
+   * can filter by inflow type. */
+  inflowClassifications?: ClassifiedInflow[];
   /** When `true`, only logs — does NOT send Telegram, does NOT write the
    * Event row. Useful for development. Defaults to false. */
   dryRun?: boolean;
@@ -76,6 +81,13 @@ export async function executeAlert(ctx: AlertContext): Promise<{
         zerionSource: ctx.walletAnalysis.source,
         delivered,
         chatId: ctx.telegramChatId ?? null,
+        // Day 16 — inflow categorisation per Prajin pattern #3
+        inflowClassifications: ctx.inflowClassifications?.map((c) => ({
+          signature: c.signature,
+          category: c.category,
+          confidence: c.confidence,
+          invoiceId: c.invoiceId,
+        })) ?? [],
       },
     },
     select: { id: true },

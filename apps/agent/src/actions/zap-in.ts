@@ -20,6 +20,11 @@
 import { prisma } from "@dodorail/db";
 import { createLpAgentClient } from "@dodorail/lpagent";
 
+import {
+  createSquadsDelegatedSigner,
+  SQUADS_AGENT_POLICY,
+} from "../squads/delegated-signer.js";
+
 export interface ZapInContext {
   merchantId: string;
   merchantName: string;
@@ -86,12 +91,45 @@ export async function executeZapInFromAgent(ctx: ZapInContext): Promise<{
     return { ok: true, eventId: event.id, reason: "dry-run" };
   }
 
-  // Live path — quote, submit, record.
+  // Day 16 — Squads delegated signer policy check before doing anything.
+  // The signer enforces the per-cycle spend cap + binds tx target to the
+  // LP Agent program ID. Mock-mode signer pre-flights without doing real
+  // multisig work; live-mode signer (Day 18+) will hit the real Squads
+  // multisig PDA. Either way we get a structured policy check that the
+  // demo recording can show.
+  const squadsSigner = await createSquadsDelegatedSigner();
+  const policyCheck = await squadsSigner.canSignZapIn({
+    poolId: ctx.poolId,
+    amountUsdcCents: ctx.amountUsdcCents,
+  });
+  if (!policyCheck.allowed) {
+    return {
+      ok: false,
+      reason: `squads policy denied: ${policyCheck.reason}`,
+    };
+  }
+
+  // Live path — quote, sign via Squads, submit, record.
   const quote = await lp.quoteZapIn({
     poolId: ctx.poolId,
     amountUsdcCents: ctx.amountUsdcCents,
     wallet: merchant.solanaWalletAddress,
   });
+
+  // Day 16 — route the signing through the Squads delegated signer.
+  // In mock-mode this returns a synthetic tx sig; in live-mode (Day 18+)
+  // this hits the real multisig spend-limit flow. Either way the agent
+  // never holds the merchant's raw private key.
+  const squadsTx = await squadsSigner.signAndSubmitZapIn({
+    poolId: ctx.poolId,
+    amountUsdcCents: ctx.amountUsdcCents,
+    unsignedTransactionB64: quote.transactionB64,
+  });
+
+  // For mock-mode end-to-end completeness we still call the LP Agent's
+  // submit to write its own bookkeeping (position id allocation). In
+  // live-mode (Day 18+) the Squads-signed tx IS the submission — this
+  // call collapses into a no-op. For now both run.
   const result = await lp.submitZapIn({
     poolId: ctx.poolId,
     amountUsdcCents: ctx.amountUsdcCents,
@@ -127,6 +165,11 @@ export async function executeZapInFromAgent(ctx: ZapInContext): Promise<{
         dryRun: false,
         liveTx: true,
         lpAgentMode: lp.mode,
+        // Day 16 — Squads policy + signing path
+        squadsMode: squadsSigner.mode,
+        squadsTxSig: squadsTx.txSig,
+        squadsVia: squadsTx.via,
+        squadsPolicy: SQUADS_AGENT_POLICY.description,
       },
     },
     select: { id: true },
