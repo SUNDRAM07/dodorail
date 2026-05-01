@@ -24,6 +24,7 @@
     "@dodorail/tether": "workspace:*",
     "@dodorail/ika": "workspace:*",
     "@dodorail/lpagent": "workspace:*",
+    "@dodorail/x402": "workspace:*",
     "@radix-ui/react-dropdown-menu": "^2.1.4",
     "@sentry/nextjs": "^8.50.0",
     "posthog-js": "^1.200.0",
