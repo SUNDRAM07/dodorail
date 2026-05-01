@@ -29,6 +29,9 @@ importers:
       '@dodorail/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@dodorail/goldrush':
+        specifier: workspace:*
+        version: link:../../packages/integrations/goldrush
       '@dodorail/lpagent':
         specifier: workspace:*
         version: link:../../packages/integrations/lpagent

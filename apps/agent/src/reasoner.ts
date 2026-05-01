@@ -48,6 +48,14 @@ export interface ReasonerInput {
   recentZapAlready: boolean;
   /** Whether incoming USDC > $1000 in the last hour — the "alert this" trigger. */
   largeIncomingThisHour: boolean;
+  /** Day 15 — Prajin's pattern #2: behaviour delta flags computed by
+   * `apps/agent/src/heuristics/deltas.ts` from a mix of recent transfers
+   * + the merchant's own historical Event log. The reasoner uses these
+   * to make richer alert decisions than balance-only thresholds. */
+  largeVolumeLast24h?: boolean;
+  dormancyReactivated?: boolean;
+  novelCounterparty?: boolean;
+  withdrawalRateAnomaly?: boolean;
 }
 
 export interface Reasoner {
@@ -62,13 +70,61 @@ export interface Reasoner {
  * AND the prompt-engineering anchor for the live providers — the live
  * prompt asks them to reach the same conclusion shape. */
 function mockDecide(input: ReasonerInput): AgentDecision {
-  const { walletAnalysis, thresholdCents, selectedPoolLabel, recentZapAlready, largeIncomingThisHour } = input;
+  const {
+    walletAnalysis,
+    thresholdCents,
+    selectedPoolLabel,
+    recentZapAlready,
+    largeIncomingThisHour,
+    largeVolumeLast24h,
+    dormancyReactivated,
+    novelCounterparty,
+    withdrawalRateAnomaly,
+  } = input;
+
+  // Day 15 — behaviour-delta alerts (Prajin's pattern #2). Order matters:
+  // we surface the most-actionable signal first. Withdrawal anomaly is
+  // the riskiest because it could be a compromised wallet draining;
+  // dormancy reactivated + novel counterparty are flag-and-watch; large
+  // volume is informational.
+
+  if (withdrawalRateAnomaly) {
+    return {
+      action: "alert",
+      alertSeverity: "warn",
+      reason: `Withdrawal-rate anomaly detected — outbound USDC volume in the last 24h is materially higher than the prior 7-day daily average. Investigate before the next sweep cycle.`,
+    };
+  }
+
+  if (dormancyReactivated) {
+    return {
+      action: "alert",
+      alertSeverity: "warn",
+      reason: `Wallet reactivated after >7 days of agent-observed dormancy. Could be a paused customer returning OR an unauthorised actor — surfacing for confirmation.`,
+    };
+  }
+
+  if (novelCounterparty) {
+    return {
+      action: "alert",
+      alertSeverity: "info",
+      reason: `Inbound payment from a counterparty not seen in the prior 30 days. Likely a brand-new customer; flag for the merchant to acknowledge.`,
+    };
+  }
 
   if (largeIncomingThisHour) {
     return {
       action: "alert",
       alertSeverity: "info",
       reason: `Large incoming activity in the last hour — totalling > $1,000 — flagging for the merchant to acknowledge before the next sweep cycle.`,
+    };
+  }
+
+  if (largeVolumeLast24h) {
+    return {
+      action: "alert",
+      alertSeverity: "info",
+      reason: `Cumulative inbound USDC volume in the last 24 hours exceeds $5,000. Heads-up so the merchant can plan the working-capital + treasury split.`,
     };
   }
 
@@ -127,6 +183,12 @@ function buildPrompt(input: ReasonerInput): string {
     `SELECTED POOL: ${input.selectedPoolLabel}`,
     `RECENT ZAP-IN ALREADY (last 23h): ${input.recentZapAlready ? "yes" : "no"}`,
     `LARGE INCOMING THIS HOUR (>$1k): ${input.largeIncomingThisHour ? "yes" : "no"}`,
+    "",
+    "BEHAVIOUR DELTAS (treat any of these = strong alert signal):",
+    `  - LARGE VOLUME LAST 24h (>$5k inbound): ${input.largeVolumeLast24h ? "yes" : "no"}`,
+    `  - DORMANCY REACTIVATED (no agent activity 7d, then activity now): ${input.dormancyReactivated ? "yes" : "no"}`,
+    `  - NOVEL COUNTERPARTY (inbound from address never seen prior 30d): ${input.novelCounterparty ? "yes" : "no"}`,
+    `  - WITHDRAWAL RATE ANOMALY (24h outbound > 3x prior 7d daily avg): ${input.withdrawalRateAnomaly ? "yes" : "no"}`,
     "",
     "WALLET PORTFOLIO JSON:",
     JSON.stringify(input.walletAnalysis, null, 2),

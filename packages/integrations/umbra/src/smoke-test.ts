@@ -32,7 +32,18 @@ try {
   /* fall through to env-var check below */
 }
 
-const DEVNET_USDC = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+// Cal | Umbra shipped a dedicated dummy USDC/USDT faucet on 2026-05-01 at
+// faucet.umbraprivacy.com — both mints are whitelisted on Umbra's relayer +
+// protocol, so the deposit + private-transfer + claim flow now runs end-to-end
+// on devnet. The Day 8 mint (`4zMMC9...`, Circle's official devnet USDC) was
+// NOT whitelisted on Umbra's `fee_schedule` PDA, which is why our first smoke
+// hit AccountNotInitialized (Anchor error 3012). Swapped to the dummy mint
+// here; kept the original constant as `_LEGACY_*` for cross-reference.
+const DEVNET_USDC = "4oG4sjmopf5MzvTHLE8rpVJ2uyczxfsw2K84SUTpNDx7"; // dUSDC (Umbra dummy)
+const DEVNET_USDT = "DXQwBNGgyQ2BzGWxEriJPVmXYFQBsQbXvfvfSNTaJkL6"; // dUSDT (Umbra dummy)
+const _LEGACY_DEVNET_USDC_CIRCLE = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+void _LEGACY_DEVNET_USDC_CIRCLE; // kept for documentation; not used.
+void DEVNET_USDT; // exported for Day 14 USDT smoke variant if we extend.
 
 // Convert wss:// → ws://, or build a default subscriptions URL from the http URL.
 function deriveSubscriptionsUrl(rpcUrl: string): string {

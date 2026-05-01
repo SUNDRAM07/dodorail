@@ -19,11 +19,13 @@
 import { prisma } from "@dodorail/db";
 import { CURATED_POOLS } from "@dodorail/lpagent";
 
-import { createZerionAdapter, type WalletAnalysis } from "./adapters/zerion.js";
+import { createDataAdapter, getActiveDataSource } from "./adapters/index.js";
+import type { WalletAnalysis } from "./adapters/zerion.js";
 import { createReasoner, type AgentDecision } from "./reasoner.js";
 import { createTelegramNotifier } from "./notifier.js";
 import { executeAlert } from "./actions/alert.js";
 import { executeZapInFromAgent } from "./actions/zap-in.js";
+import { computeBehaviourDeltas } from "./heuristics/deltas.js";
 
 export interface MerchantTickResult {
   merchantId: string;
@@ -45,12 +47,13 @@ export interface LoopRunResult {
 
 export async function runAgentLoop(): Promise<LoopRunResult> {
   const started = new Date();
-  const zerion = createZerionAdapter();
+  const dataAdapter = createDataAdapter();
+  const dataSource = getActiveDataSource();
   const reasoner = createReasoner();
   const notifier = createTelegramNotifier();
 
   console.log(
-    `[agent] tick start ${started.toISOString()} | zerion=${zerion.mode} | reasoner=${reasoner.provider} | telegram=${notifier.enabled ? "on" : "mock"}`,
+    `[agent] tick start ${started.toISOString()} | dataSource=${dataSource} | dataAdapterMode=${dataAdapter.mode} | reasoner=${reasoner.provider} | telegram=${notifier.enabled ? "on" : "mock"}`,
   );
 
   const merchants = await prisma.merchant.findMany({
@@ -71,7 +74,7 @@ export async function runAgentLoop(): Promise<LoopRunResult> {
   for (const m of merchants) {
     try {
       // 1. Observe
-      const analysis = await zerion.getWalletAnalysis(m.solanaWalletAddress);
+      const analysis = await dataAdapter.getWalletAnalysis(m.solanaWalletAddress);
 
       // Dedup precheck for "recent zap-in already" so the LLM can be told.
       const recentZap = await prisma.event.findFirst({
@@ -83,12 +86,15 @@ export async function runAgentLoop(): Promise<LoopRunResult> {
         select: { id: true },
       });
 
-      // "Large incoming this hour" — sum of positive USDC transfers in last 60 min.
-      const oneHourAgo = Math.floor(Date.now() / 1000) - 3600;
-      const incomingUsd = analysis.recentTransfers
-        .filter((t) => t.timestamp >= oneHourAgo && t.direction === "in" && t.symbol === "USDC")
-        .reduce((sum, t) => sum + t.valueUsd, 0);
-      const largeIncoming = incomingUsd > 1000;
+      // Day 15 — full behaviour-delta computation (Prajin's pattern #2).
+      // Replaces the simple `largeIncomingThisHour` heuristic with five
+      // flags, computed from the merchant's prior Event log + this tick's
+      // recent transfers. Same merchantId-scoped queries keep the
+      // computation idempotent + concurrent-safe.
+      const deltas = await computeBehaviourDeltas({
+        merchantId: m.id,
+        walletAnalysis: analysis,
+      });
 
       // Pool selection — same logic as the dashboard (most-recent
       // TreasuryPosition row, fallback first curated).
@@ -109,7 +115,11 @@ export async function runAgentLoop(): Promise<LoopRunResult> {
         selectedPoolLabel: selectedPool.label,
         walletAnalysis: analysis,
         recentZapAlready: !!recentZap,
-        largeIncomingThisHour: largeIncoming,
+        largeIncomingThisHour: deltas.largeIncomingThisHour,
+        largeVolumeLast24h: deltas.largeVolumeLast24h,
+        dormancyReactivated: deltas.dormancyReactivated,
+        novelCounterparty: deltas.novelCounterparty,
+        withdrawalRateAnomaly: deltas.withdrawalRateAnomaly,
       });
 
       console.log(
