@@ -163,19 +163,18 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
     );
   }
 
-  // 5. Payment verified — write a Payment row + emit event, then serve resource.
-  await prisma.payment.create({
-    data: {
-      merchantId: merchant.id,
-      rail: "X402_AGENT",
-      sourceAsset: "USDC",
-      sourceAmount: expectedAmountBaseUnits.toString(),
-      status: "CONFIRMED",
-      processedAt: new Date(),
-      confirmedAt: new Date(),
-      settlementTxSig: verifyResult.txSig ?? payment.txSig,
-    },
-  });
+  // 5. Payment verified — emit a PAYMENT_RECEIVED Event, then serve resource.
+  //
+  // Note: we deliberately do NOT write a Payment row for x402 agent
+  // payments. The Payment model's `invoiceId` is required (every Payment
+  // belongs to an Invoice), but x402 agent payments aren't invoiced flows —
+  // they're stateless paid-resource consumptions. The Event row captures
+  // everything we need (rail, resource, txSig, cluster, amount); the
+  // merchant dashboard can filter Events with `type: PAYMENT_RECEIVED` and
+  // `payload.rail: X402_AGENT` to surface x402 activity. If/when we add
+  // x402-specific accounting, the Day-19+ schema move is to make
+  // `Payment.invoiceId` nullable rather than synthesise a fake Invoice
+  // per x402 hit.
   await prisma.event.create({
     data: {
       merchantId: merchant.id,
@@ -187,6 +186,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
         txSig: verifyResult.txSig,
         cluster,
         amountUsdcCents: X402_CONSTANTS.defaultAmountUsdcCentsPerCall,
+        amountBaseUnits: expectedAmountBaseUnits.toString(),
       },
     },
   });
