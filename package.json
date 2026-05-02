@@ -32,10 +32,10 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx,yml,yaml}\" --ignore-path .gitignore"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^25.6.0",
     "prettier": "^3.4.0",
-    "prettier-plugin-tailwindcss": "^0.6.9",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "turbo": "^2.3.0",
-    "typescript": "^5.7.0"
+    "typescript": "^6.0.3"
   }
 }
