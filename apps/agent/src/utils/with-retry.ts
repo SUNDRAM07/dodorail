@@ -93,7 +93,7 @@ export async function withRetry<T>(
   fn: () => Promise<T>,
   options: WithRetryOptions = {},
 ): Promise<T> {
-  const attempts = options.attempts ?? 3;
+  const attempts = options.attempts ?? 5;
   const baseDelayMs = options.baseDelayMs ?? 1000;
   const label = options.label ?? "db-call";
 
@@ -127,4 +127,37 @@ export async function withRetry<T>(
   }
   // Unreachable, but TS wants it.
   throw lastErr;
+}
+
+/**
+ * Explicitly wake a suspended Neon compute by running a trivial query first.
+ *
+ * Free-tier Neon projects auto-suspend after ~5 min idle. The agent's cron
+ * fires every 1-2 hours, so every tick has to cold-wake the compute. Doing
+ * a cheap `SELECT 1` at the start of the tick (wrapped in a generous retry)
+ * gives the compute time to come up before we hit the real merchant query.
+ *
+ * Cadence: 5 attempts, 2s/4s/8s/16s/32s backoff = up to ~62s of total wake
+ * tolerance. Most Neon cold-wakes complete within 5-15s; this gives us
+ * comfortable margin.
+ *
+ * Returns the time spent waking (ms) for visibility into the public logs.
+ */
+export async function warmUpDb(
+  query: () => Promise<unknown>,
+): Promise<{ wakeMs: number; attempts: number }> {
+  const started = Date.now();
+  let attemptsUsed = 0;
+  await withRetry(
+    async () => {
+      attemptsUsed++;
+      await query();
+    },
+    {
+      label: "warm-up-ping",
+      attempts: 5,
+      baseDelayMs: 2000,
+    },
+  );
+  return { wakeMs: Date.now() - started, attempts: attemptsUsed };
 }
