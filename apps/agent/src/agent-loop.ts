@@ -27,6 +27,7 @@ import { executeAlert } from "./actions/alert.js";
 import { executeZapInFromAgent } from "./actions/zap-in.js";
 import { computeBehaviourDeltas } from "./heuristics/deltas.js";
 import { classifyInflows, summariseClassifications } from "./classifiers/inflow.js";
+import { withRetry } from "./utils/with-retry.js";
 
 export interface MerchantTickResult {
   merchantId: string;
@@ -57,18 +58,28 @@ export async function runAgentLoop(): Promise<LoopRunResult> {
     `[agent] tick start ${started.toISOString()} | dataSource=${dataSource} | dataAdapterMode=${dataAdapter.mode} | reasoner=${reasoner.provider} | telegram=${notifier.enabled ? "on" : "mock"}`,
   );
 
-  const merchants = await prisma.merchant.findMany({
-    where: {
-      yieldEnabled: true,
-    },
-    select: {
-      id: true,
-      name: true,
-      solanaWalletAddress: true,
-      yieldThresholdCents: true,
-      telegramChatId: true,
-    },
-  });
+  // Wrap the top-level merchant fetch in transient-retry. Neon's free-tier
+  // compute auto-suspends after ~5 min of inactivity; the first connection
+  // after wake-up sometimes drops mid-handshake. Retrying 3x with 1s/2s/4s
+  // backoff turns those blips into invisible self-healing rather than a
+  // permanent red X in the public GH Actions history. Per-merchant prisma
+  // calls below are already isolated by per-merchant try/catch.
+  const merchants = await withRetry(
+    () =>
+      prisma.merchant.findMany({
+        where: {
+          yieldEnabled: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          solanaWalletAddress: true,
+          yieldThresholdCents: true,
+          telegramChatId: true,
+        },
+      }),
+    { label: "agent-loop:merchant.findMany" },
+  );
 
   const results: MerchantTickResult[] = [];
 
