@@ -141,7 +141,7 @@ async function handler(req: Request): Promise<NextResponse> {
     wasNewMerchant: merchant.createdAt.getTime() > Date.now() - 5000, // created in last 5s
   });
   // Kick off SNS enrichment in the background — Day 4 Phase 5.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://dodorail.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://dodorail.xyz";
   fetch(`${appUrl}/api/enrich/sns/${merchant.id}`, {
     method: "POST",
     headers: { "x-dodorail-enrich-token": process.env.DODORAIL_SESSION_SECRET ?? "" },

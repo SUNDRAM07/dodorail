@@ -140,7 +140,7 @@ export async function createInvoiceAction(_: unknown, formData: FormData): Promi
         where: { id: invoice.id },
         data: { dodoProductId: product.id },
       });
-      const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dodorail.vercel.app"}/pay/${invoice.id}?dodo=complete`;
+      const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dodorail.xyz"}/pay/${invoice.id}?dodo=complete`;
       const checkout = await dodo.createCheckoutSession({
         merchantId: session.merchant.dodoMerchantId ?? session.merchant.id,
         productId: product.id,

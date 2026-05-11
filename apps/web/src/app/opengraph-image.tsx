@@ -159,7 +159,7 @@ export default async function OpengraphImage(): Promise<ImageResponse> {
               fontWeight: 600,
             }}
           >
-            dodorail.vercel.app
+            dodorail.xyz
           </div>
         </div>
       </div>

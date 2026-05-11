@@ -134,7 +134,7 @@ export default function JudgesPage() {
         <EvidenceCard
           icon={Wallet}
           title="Live merchant dashboard"
-          href="https://dodorail.vercel.app/dashboard"
+          href="https://dodorail.xyz/dashboard"
           description="Sign in with Phantom / Solflare. Create an invoice. Pay it via Dodo card or USDC on Solana. Watch the Treasury Vault auto-deploy logic."
         />
         <EvidenceCard
@@ -158,13 +158,13 @@ export default function JudgesPage() {
         <EvidenceCard
           icon={Coins}
           title="LP Agent Treasury Vault — live in dashboard"
-          href="https://dodorail.vercel.app/dashboard/settings#treasury"
+          href="https://dodorail.xyz/dashboard/settings#treasury"
           description="Configure threshold + pool, view live Meteora DLMM positions, deposit + withdraw flows. 9 LP Agent endpoints integrated."
         />
         <EvidenceCard
           icon={Zap}
           title="x402 agent-payment endpoint"
-          href="https://dodorail.vercel.app/api/x402/demo-merchant?resource=status"
+          href="https://dodorail.xyz/api/x402/demo-merchant?resource=status"
           description="An autonomous agent hits this URL → gets HTTP 402 → signs Solana USDC → retries with x-payment header → gets the resource. Real protocol, not a placeholder."
         />
         <EvidenceCard
@@ -176,8 +176,8 @@ export default function JudgesPage() {
         <EvidenceCard
           icon={FileCode2}
           title="OpenGraph share card (live PNG)"
-          href="https://dodorail.vercel.app/opengraph-image"
-          description="Dynamic OG card auto-updates the DAY N OF 22 counter. Every link to dodorail.vercel.app shared on X / iMessage / Slack lights up with this card."
+          href="https://dodorail.xyz/opengraph-image"
+          description="Dynamic OG card auto-updates the DAY N OF 22 counter. Every link to dodorail.xyz shared on X / iMessage / Slack lights up with this card."
         />
       </div>
 
@@ -295,8 +295,8 @@ export default function JudgesPage() {
           </p>
           <p>
             <strong className="text-foreground">Live URL</strong> — the live demo runs at{" "}
-            <a href="https://dodorail.vercel.app" className="text-burnt underline-offset-2 hover:underline">
-              dodorail.vercel.app
+            <a href="https://dodorail.xyz" className="text-burnt underline-offset-2 hover:underline">
+              dodorail.xyz
             </a>
             . The Treasury Agent runs on{" "}
             <a

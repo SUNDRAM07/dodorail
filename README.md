@@ -11,7 +11,7 @@ Stripe + Wise for Indian SaaS, AI, and digital-product founders who sell globall
 [![Status: Day 16 of 22](https://img.shields.io/badge/Day-16%20of%2022-E97F3B.svg)](#timeline)
 [![Treasury Agent: live](https://img.shields.io/badge/Treasury_Agent-live_on_GitHub_Actions-22c55e.svg)](https://github.com/SUNDRAM07/dodorail/actions/workflows/agent-cron.yml)
 
-**[Live app](https://dodorail.vercel.app) · [Treasury Agent](./apps/agent) · [X](https://x.com/dodorail) · [Telegram](https://t.me/dodorail_io)**
+**[Live app](https://dodorail.xyz) · [Treasury Agent](./apps/agent) · [X](https://x.com/dodorail) · [Telegram](https://t.me/dodorail_io)**
 
 </div>
 

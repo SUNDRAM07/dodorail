@@ -258,7 +258,7 @@ export function PayPanel({
   const solflareDeepLink = useMemo(() => {
     if (!solanaPay?.url) return null;
     return `https://solflare.com/ul/v1/browse/${encodeURIComponent(solanaPay.url)}?ref=${encodeURIComponent(
-      typeof window !== "undefined" ? window.location.origin : "https://dodorail.vercel.app",
+      typeof window !== "undefined" ? window.location.origin : "https://dodorail.xyz",
     )}`;
   }, [solanaPay]);
 
