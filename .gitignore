@@ -18,6 +18,16 @@ out/
 .env.production.local
 .env*.local
 
+# Secrets vault (belt-and-braces — the real vault lives at /FRONTIER/.secrets/
+# which is outside this repo, but exclude it here too in case anything
+# ever gets moved into the repo tree by accident)
+.secrets/
+**/.secrets/
+credentials.md
+**/credentials.md
+secrets.json
+**/secrets.json
+
 # Logs
 *.log
 npm-debug.log*
