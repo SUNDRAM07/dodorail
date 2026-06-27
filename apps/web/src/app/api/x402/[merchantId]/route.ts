@@ -40,22 +40,22 @@ export const dynamic = "force-dynamic";
  *   - Retry with bad payment → HTTP 402 again (same challenge or a new one)
  *
  * Nonce handling:
- *   For the hackathon-window scope we issue a fresh nonce per request and
- *   verify against the same nonce in the same response. Production-scale
- *   replay protection (cross-request nonce tracking) is a Day-19+ polish
- *   item that lands when we add an `X402Payment` Prisma table.
+ *   v1 issues a fresh nonce per request and verifies against the same
+ *   nonce in the same response. Production-scale replay protection
+ *   (cross-request nonce tracking) lands when we add an `X402Payment`
+ *   Prisma table.
  *
- *   For Day 18 we accept a "best-effort" stateless nonce: the agent gets
- *   the nonce in the 402 body, signs against the merchant's recipient
- *   wallet, retries with that nonce, and the server validates the
- *   tx-signature + balance-delta match.
+ *   Current implementation accepts a "best-effort" stateless nonce: the
+ *   agent gets the nonce in the 402 body, signs against the merchant's
+ *   recipient wallet, retries with that nonce, and the server validates
+ *   the tx-signature + balance-delta match.
  *
- * Resource served (for the demo):
+ * Resource served:
  *   A small JSON envelope with merchant slug + a "this is the resource
  *   the agent paid for" payload. Real production resources would be
- *   gated APIs (analytics endpoints, gated content). For Frontier
- *   submission the demo resource is a status response with an
- *   x402-paid: true field — enough to prove the loop works.
+ *   gated APIs (analytics endpoints, gated content). The current resource
+ *   is a status response with an x402-paid: true field — enough to prove
+ *   the loop works end-to-end.
  */
 
 interface RouteContext {
@@ -191,9 +191,8 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
     },
   });
 
-  // 6. Serve the resource. For the hackathon demo, the resource is a
-  // status JSON payload — production resources would be gated content,
-  // analytics endpoints, etc.
+  // 6. Serve the resource. The default resource is a status JSON payload
+  // — production resources would be gated content, analytics endpoints, etc.
   return NextResponse.json({
     ok: true,
     paid: true,

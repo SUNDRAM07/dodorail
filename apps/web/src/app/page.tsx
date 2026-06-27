@@ -4,16 +4,13 @@ import {
   Github,
   LayoutDashboard,
   LogIn,
-  Send,
   Twitter,
   Wallet,
   ShieldCheck,
-  Sparkles,
   TrendingUp,
   Bot,
   Building2,
   Users,
-  Globe2,
 } from "lucide-react";
 import { BRAND, RAILS, RAIL_STATUS, type RailId } from "@dodorail/sdk";
 
@@ -22,9 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/auth";
-
-const DAY_OF = 16;
-const TOTAL_DAYS = 22;
 
 const VALUE_PROPS = [
   {
@@ -119,7 +113,7 @@ export default async function HomePage() {
               {BRAND.wordmark}
             </span>
             <Badge variant="burnt" className="font-mono text-[10px] uppercase tracking-wider">
-              Day {DAY_OF} of {TOTAL_DAYS}
+              Public Beta
             </Badge>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-3">
@@ -165,7 +159,7 @@ export default async function HomePage() {
         <div className="container grid gap-12 py-16 lg:grid-cols-[1.2fr_1fr] lg:py-20">
           <div className="animate-fade-in">
             <Badge variant="outline" className="mb-6 font-mono text-[11px] uppercase tracking-widest">
-              Solana Frontier · April – May 2026
+              Built for India · Live on Solana
             </Badge>
             <h1 className="text-balance text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
               the stablecoin rail <br className="hidden sm:inline" />
@@ -245,7 +239,7 @@ export default async function HomePage() {
               </CardContent>
             </Card>
             <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              mock receipt · live demo Day {DAY_OF}
+              example receipt · USDC on Solana
             </p>
           </div>
         </div>
@@ -378,75 +372,34 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* --- Status / build-in-public --- */}
+      {/* --- Open-source + community --- */}
       <section className="border-b border-line/60">
         <div className="container py-14">
-          <div className="grid gap-10 md:grid-cols-[1.2fr_1fr] md:items-center">
-            <div>
-              <Badge variant="burnt" className="mb-4 font-mono text-[10px] uppercase tracking-widest">
-                Building in public
-              </Badge>
-              <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                Day {DAY_OF} of {TOTAL_DAYS}.<br />Shipping every day until May 11.
-              </h2>
-              <p className="mt-4 text-muted-foreground">
-                Submitting to 13 side tracks of the Solana Frontier Hackathon. Every commit is
-                public. Every integration is MIT-licensed. Follow along — or fork the code.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Button asChild>
-                  <a href={BRAND.social.xUrl} target="_blank" rel="noreferrer">
-                    <Twitter /> Follow {BRAND.social.x}
-                  </a>
-                </Button>
-                <Button variant="outline" asChild>
-                  <a href={BRAND.social.github} target="_blank" rel="noreferrer">
-                    <Github /> Star on GitHub
-                  </a>
-                </Button>
-              </div>
+          <div className="mx-auto max-w-3xl text-center">
+            <Badge variant="burnt" className="mb-4 font-mono text-[10px] uppercase tracking-widest">
+              Open source
+            </Badge>
+            <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+              MIT-licensed. Forkable.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+              Every sponsor integration ships as its own MIT-licensed package under
+              {" "}<code className="font-mono text-foreground">@dodorail/*</code>. The Anchor program,
+              the Treasury Agent, the SDK — all open. Fork the glue, swap our merchant model
+              for yours, ship.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Button asChild>
+                <a href={BRAND.social.xUrl} target="_blank" rel="noreferrer">
+                  <Twitter /> Follow {BRAND.social.x}
+                </a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={BRAND.social.github} target="_blank" rel="noreferrer">
+                  <Github /> Star on GitHub
+                </a>
+              </Button>
             </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-mono text-sm">Day-by-day status</CardTitle>
-                <CardDescription>
-                  Foundation + integrations shipped Days 1-12. Agent + Portal landed Day 13-16. Polish week underway.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { t: "Foundation", d: "Days 1–6", icon: Wallet, status: "shipped" },
-                  { t: "Core integrations", d: "Days 7–12", icon: Globe2, status: "shipped" },
-                  { t: "Stretch + Agent + Portal", d: "Days 13–18", icon: Bot, status: "in progress" },
-                  { t: "Polish + Submit", d: "Days 19–22", icon: Sparkles, status: "upcoming" },
-                ].map(({ t, d, icon: Icon, status }) => (
-                  <div key={t} className="flex items-center gap-3">
-                    <span className="flex size-9 items-center justify-center rounded-md bg-secondary">
-                      <Icon className="size-4 text-muted-foreground" />
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{t}</p>
-                      <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {d}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        status === "shipped"
-                          ? "shipped"
-                          : status === "in progress"
-                            ? "burnt"
-                            : "outline"
-                      }
-                      className="font-mono text-[10px] uppercase"
-                    >
-                      {status}
-                    </Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
@@ -484,7 +437,7 @@ export default async function HomePage() {
                 <a href={BRAND.social.github} className="underline hover:text-burnt">
                   @SUNDRAM07
                 </a>{" "}
-                for the Solana Frontier Hackathon · Colosseum 2026
+                · MIT-licensed packages on GitHub
               </p>
             </div>
 

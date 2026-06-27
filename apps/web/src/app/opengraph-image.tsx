@@ -7,25 +7,18 @@ import { ImageResponse } from "next/og";
  * is automatically wired up as the `og:image` for `/`, AND as the
  * `twitter:image` if no separate `twitter-image` file is present.
  *
- * Why dynamic instead of a static PNG: the card auto-updates the
- * "DAY N OF 22" badge so every shared link always shows the current
- * build state. No manual re-export needed when Day 16 → 17 → 18.
- *
  * Renders a 1200x630 PNG that meets Open Graph + Twitter card-image
  * spec (2:1 aspect ratio recommended for `summary_large_image`).
  */
 
 export const runtime = "edge";
 export const alt =
-  "DodoRail — the stablecoin payment rail for Indian SaaS founders selling globally. Day 17 of 22.";
+  "DodoRail — the stablecoin payment rail for Indian SaaS founders selling globally.";
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = "image/png";
-
-const DAY_OF = 17;
-const TOTAL_DAYS = 22;
 
 export default async function OpengraphImage(): Promise<ImageResponse> {
   return new ImageResponse(
@@ -77,7 +70,7 @@ export default async function OpengraphImage(): Promise<ImageResponse> {
               textTransform: "uppercase",
             }}
           >
-            DAY {DAY_OF} OF {TOTAL_DAYS}
+            Public Beta
           </div>
         </div>
 
